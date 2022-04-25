@@ -159,3 +159,18 @@ octetStream P256Element::hash(size_t n_bytes) const
     res.resize_precise(n_bytes);
     return res;
 }
+
+void P256Element::randomize(PRNG& G, int n)
+{
+    (void) n;
+    P256Element::Scalar newscalar;
+    newscalar.randomize(G, n);
+    point = P256Element(newscalar).point;
+}
+
+void P256Element::input(istream& s,bool human)
+{ 
+    P256Element::Scalar newscalar;
+    newscalar.input(s,human); 
+    point = P256Element(newscalar).point;
+}

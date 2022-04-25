@@ -43,6 +43,10 @@ public:
     void check();
 
     Scalar x() const;
+    void randomize(PRNG& G, int n = -1);
+    void input(istream& s, bool human);
+    static string type_short() { return "ec"; }
+    static DataFieldType field_type() { return DATA_INT; }
 
     P256Element operator+(const P256Element& other) const;
     P256Element operator-(const P256Element& other) const;

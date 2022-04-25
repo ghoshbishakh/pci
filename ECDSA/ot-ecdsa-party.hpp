@@ -15,6 +15,7 @@
 #include "Protocols/Beaver.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/MascotPrep.hpp"
+#include "Protocols/MascotEcPrep.hpp"
 #include "Processor/Processor.hpp"
 #include "Processor/Data_Files.hpp"
 #include "Processor/Input.hpp"
@@ -139,7 +140,7 @@ void run(int argc, const char** argv)
     typename scalarShare::mac_key_type mac_key;
     scalarShare::read_or_generate_mac_key("", P, mac_key);
 
-    typename scalarShare::MAC_Check output(mac_key);
+    typename scalarShare::Direct_MC output(mac_key);
 
     typename scalarShare::LivePrep preprocessing(0, usage);
     
@@ -181,5 +182,53 @@ void run(int argc, const char** argv)
     cout << "-->" << result << endl;
     output.Check(processor.P);
 
-    // -----------------
+    // ------------------------------------------------------
+
+    typedef T<P256Element> ecShare;
+
+    typename ecShare::mac_key_type ec_mac_key;
+    ecShare::read_or_generate_mac_key("", P, ec_mac_key);
+
+
+    typename ecShare::Direct_MC ec_output(output.get_alphai());
+    
+    MascotEcPrep<ecShare, scalarShare> ec_preprocessing(usage, preprocessing);
+    
+    // SubProcessor<ecShare> ec_processor(ec_output, ec_preprocessing, P);
+
+    typename ecShare::Input ec_input(ec_output, ec_preprocessing, P);
+
+
+    // Input Shares
+    vector<ecShare> ec_inputs_shares[2];
+
+
+    // Give Input
+    // typename ecShare::Input input = protocolSet.input;
+
+    ec_input.reset_all(P);
+    for (int i = 0; i < INPUTSIZE; i++)
+        ec_input.add_from_all(pciinputs[i].Pk);
+    ec_input.exchange();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        // shares of party A
+        ec_inputs_shares[0].push_back(ec_input.finalize(0));
+
+        // shares of party B
+        ec_inputs_shares[1].push_back(ec_input.finalize(1));
+    }
+    cout << "---- ec inputs shared ----" << thisplayer << endl;
+
+    // output
+    typename ecShare::clear ec_result;
+    ec_output.init_open(P);
+    ec_output.prepare_open(ec_inputs_shares[0][0]);
+    ec_output.exchange(P);
+    ec_result = ec_output.finalize_open();
+    cout << "-->" << pciinputs[0].Pk << endl;
+    cout << "-->" << ec_result << endl;
+    ec_output.Check(P);
+
+
 }
