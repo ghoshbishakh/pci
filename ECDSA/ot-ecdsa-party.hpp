@@ -24,6 +24,14 @@
 
 #include <assert.h>
 
+class PCIInput
+{
+public:
+    P256Element::Scalar sk;
+    P256Element Pk;
+    EcSignature signature;
+};
+
 template<template<class U> class T>
 void run(int argc, const char** argv)
 {
@@ -84,57 +92,94 @@ void run(int argc, const char** argv)
             "--no-macs" // Flag token.
     );
 
+    // Setup network with two players
     Names N(opt, argc, argv, 2);
-    int n_tuples = 1000;
-    if (not opt.lastArgs.empty())
-        n_tuples = atoi(opt.lastArgs[0]->c_str());
-    PlainPlayer P(N, "ecdsa");
-    P256Element::init();
-    P256Element::Scalar::next::init_field(P256Element::Scalar::pr(), false);
 
+    // Setup PlainPlayer
+    PlainPlayer P(N, "ecdsa");
+    
+    // Initialize curve and field
+    // Initializes the field order to same as curve order 
+    P256Element::init();
+    // Initialize scalar:next with same order as field order. ??
+    P256Element::Scalar::next::init_field(P256Element::Scalar::pr(), false);
+    
     BaseMachine machine;
     machine.ot_setups.push_back({P, true});
 
-    P256Element::Scalar keyp;
+    
+    // Generate secret keys and signatures with them
+    cout << "generating random keys and signatures" << endl;
+    vector<PCIInput> pciinputs;
+    P256Element::Scalar sk;
+
     SeededPRNG G;
-    keyp.randomize(G);
+    int INPUTSIZE = 3;
+    unsigned char* message = (unsigned char*)"this is a sample claim"; // 22
+    
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        // chose random sk
+        sk.randomize(G);
 
-    typedef T<P256Element::Scalar> pShare;
-    DataPositions usage;
+        // create pk
+        P256Element Pk(sk);
 
-    OnlineOptions::singleton.batch_size = 1;
-    typename pShare::Direct_MC MCp(keyp);
-    ArithmeticProcessor _({}, 0);
-    typename pShare::TriplePrep sk_prep(0, usage);
-    SubProcessor<pShare> sk_proc(_, MCp, sk_prep, P);
-    pShare sk, __;
-    // synchronize
-    Bundle<octetStream> bundle(P);
-    P.unchecked_broadcast(bundle);
-    Timer timer;
-    timer.start();
-    auto stats = P.total_comm();
-    sk_prep.get_two(DATA_INVERSE, sk, __);
-    cout << "Secret key generation took " << timer.elapsed() * 1e3 << " ms" << endl;
-    (P.total_comm() - stats).print(true);
+        // sign
+        EcSignature signature = sign(message, 22, sk);
+ 
+        pciinputs.push_back({sk, Pk, signature});
+    }
 
-    OnlineOptions::singleton.batch_size = (1 + pShare::Protocol::uses_triples) * n_tuples;
-    typename pShare::TriplePrep prep(0, usage);
-    prep.params.correlation_check &= not opt.isSet("-U");
-    prep.params.fewer_rounds = opt.isSet("-A");
-    prep.params.fiat_shamir = opt.isSet("-H");
-    prep.params.check = not opt.isSet("-E");
-    prep.params.generateMACs = not opt.isSet("-M");
-    opts.check_beaver_open &= prep.params.generateMACs;
-    opts.check_open &= prep.params.generateMACs;
-    SubProcessor<pShare> proc(_, MCp, prep, P);
-    typename pShare::prep_type::Direct_MC MCpp(keyp);
-    prep.triple_generator->MC = &MCpp;
 
-    bool prep_mul = not opt.isSet("-D");
-    prep.params.use_extension = not opt.isSet("-S");
-    vector<EcTuple<T>> tuples;
-    preprocessing(tuples, n_tuples, sk, proc, opts);
-    //check(tuples, sk, keyp, P);
-    sign_benchmark(tuples, sk, MCp, P, opts, prep_mul ? 0 : &proc);
+    DataPositions usage(P.num_players());
+
+    typedef T<P256Element::Scalar> scalarShare;
+
+    typename scalarShare::mac_key_type mac_key;
+    scalarShare::read_or_generate_mac_key("", P, mac_key);
+
+    typename scalarShare::MAC_Check output(mac_key);
+
+    typename scalarShare::LivePrep preprocessing(0, usage);
+    
+    SubProcessor<scalarShare> processor(output, preprocessing, P);
+
+    typename scalarShare::Input input(output, preprocessing, P);
+
+
+    // Input Shares
+    int thisplayer = N.my_num();
+    vector<scalarShare> inputs_shares[2];
+
+
+    // Give Input
+    // typename scalarShare::Input input = protocolSet.input;
+
+    input.reset_all(P);
+    for (int i = 0; i < INPUTSIZE; i++)
+        input.add_from_all(pciinputs[i].sk);
+    input.exchange();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        // shares of party A
+        inputs_shares[0].push_back(input.finalize(0));
+
+        // shares of party B
+        inputs_shares[1].push_back(input.finalize(1));
+    }
+    cout << "---- inputs shared ----" << thisplayer << endl;
+
+    // output
+    typename scalarShare::clear result;
+    // auto& output = protocolSet.output;
+    output.init_open(P);
+    output.prepare_open(inputs_shares[0][0]);
+    output.exchange(P);
+    result = output.finalize_open();
+    cout << "-->" << pciinputs[0].sk << endl;
+    cout << "-->" << result << endl;
+    output.Check(processor.P);
+
+    // -----------------
 }
