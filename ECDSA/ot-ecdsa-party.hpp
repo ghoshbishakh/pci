@@ -231,14 +231,17 @@ void run(int argc, const char** argv)
     cout << "-->" << ec_result << endl;
     ec_output.Check(P);
 
-    cout << "---- checking multiplication ----" << thisplayer << endl;
-    // // Multiply open scalar- result with private point ec_inputs_shares[0][1]
+    cout << "---- checking addition ----" << thisplayer << endl;
+    // Multiply open scalar- result with private point ec_inputs_shares[0][1]
 
-    // if (P.my_num() == 0){
-    //     cout << "Expected result of Multiply-G-P: " << pciinputs[1].Pk + pciinputs[1].Pk << endl;
-    // }
+    if (P.my_num() == 0){
+        cout << "Expected result of Add-G-S: " << pciinputs[1].Pk + pciinputs[1].Pk << endl;
+    }
 
-    // ecShare mulgp = ec_inputs_shares[0][1] + ec_inputs_shares[0][1];
-    // // typename ecShare::clear mulgp_open;
-
+    ecShare addgs = ec_inputs_shares[0][1] + ec_inputs_shares[0][1];
+    ec_output.init_open(P);
+    ec_output.prepare_open(addgs);
+    ec_output.exchange(P);
+    ec_result = ec_output.finalize_open();
+    cout << "-->" << ec_result << endl;
 }
