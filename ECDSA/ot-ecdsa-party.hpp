@@ -128,6 +128,7 @@ void run(int argc, const char** argv)
 
         // sign
         EcSignature signature = sign(message, 22, sk);
+        check(signature, message, 22, Pk);
  
         pciinputs.push_back({sk, Pk, signature});
     }
@@ -230,5 +231,14 @@ void run(int argc, const char** argv)
     cout << "-->" << ec_result << endl;
     ec_output.Check(P);
 
+    cout << "---- checking multiplication ----" << thisplayer << endl;
+    // // Multiply open scalar- result with private point ec_inputs_shares[0][1]
+
+    // if (P.my_num() == 0){
+    //     cout << "Expected result of Multiply-G-P: " << pciinputs[1].Pk + pciinputs[1].Pk << endl;
+    // }
+
+    // ecShare mulgp = ec_inputs_shares[0][1] + ec_inputs_shares[0][1];
+    // // typename ecShare::clear mulgp_open;
 
 }

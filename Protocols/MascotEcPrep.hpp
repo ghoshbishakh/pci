@@ -24,6 +24,8 @@ scalar_preprocessing(0, usage)
 {
 }
 
+
+
 template<class T, class V>
 void MascotEcPrep<T, V>::get_input_no_count(T& a, typename T::open_type& x, int i){
     V scalar_share;
