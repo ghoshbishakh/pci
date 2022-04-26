@@ -33,6 +33,12 @@ public:
     EcSignature signature;
 };
 
+// Function for Scalar multiplication of A p256 share and a clear gfp
+void ecscalarmulshare(Share<P256Element> pointshare, P256Element::Scalar multiplier, Share<P256Element>& result){
+    result.set_share(pointshare.get_share() * multiplier);
+    result.set_mac(pointshare.get_mac() * multiplier);
+}
+
 template<template<class U> class T>
 void run(int argc, const char** argv)
 {
@@ -194,7 +200,7 @@ void run(int argc, const char** argv)
     typename ecShare::Direct_MC ec_output(output.get_alphai());
     
     MascotEcPrep<ecShare, scalarShare> ec_preprocessing(usage, preprocessing);
-    
+
     // SubProcessor<ecShare> ec_processor(ec_output, ec_preprocessing, P);
 
     typename ecShare::Input ec_input(ec_output, ec_preprocessing, P);
@@ -231,11 +237,11 @@ void run(int argc, const char** argv)
     cout << "-->" << ec_result << endl;
     ec_output.Check(P);
 
-    cout << "---- checking addition ----" << thisplayer << endl;
+    cout << "---- Add-G ----" << thisplayer << endl;
     // Multiply open scalar- result with private point ec_inputs_shares[0][1]
 
     if (P.my_num() == 0){
-        cout << "Expected result of Add-G-S: " << pciinputs[1].Pk + pciinputs[1].Pk << endl;
+        cout << "Expected result of Add-G: " << pciinputs[1].Pk + pciinputs[1].Pk << endl;
     }
 
     ecShare addgs = ec_inputs_shares[0][1] + ec_inputs_shares[0][1];
@@ -244,4 +250,23 @@ void run(int argc, const char** argv)
     ec_output.exchange(P);
     ec_result = ec_output.finalize_open();
     cout << "-->" << ec_result << endl;
+    ec_output.Check(P);
+
+    cout << "---- Multiply-G-P ----" << thisplayer << endl;
+    if (P.my_num() == 0){
+        cout << "Expected result of Multiply-G-P: " << pciinputs[1].Pk * result << endl;
+    }
+
+    ecShare mulgp = {};
+    ecscalarmulshare(ec_inputs_shares[0][1], result, mulgp);
+    // mulgp.set_share(ec_inputs_shares[0][1].get_share() * result);
+    // mulgp.set_mac(ec_inputs_shares[0][1].get_mac() * result);
+    ec_output.init_open(P);
+    ec_output.prepare_open(mulgp);
+    ec_output.exchange(P);
+    ec_result = ec_output.finalize_open();
+    cout << "-->" << ec_result << endl;
+    ec_output.Check(P);
+    cout << "=====================" << endl;
+    
 }
