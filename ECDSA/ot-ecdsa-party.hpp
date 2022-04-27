@@ -13,6 +13,7 @@
 #include "ECDSA/preprocessing.hpp"
 #include "ECDSA/sign.hpp"
 #include "Protocols/Beaver.hpp"
+// #include "Protocols/EcBeaver.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/MascotPrep.hpp"
 #include "Protocols/MascotEcPrep.hpp"
@@ -37,6 +38,12 @@ public:
 void ecscalarmulshare(Share<P256Element> pointshare, P256Element::Scalar multiplier, Share<P256Element>& result){
     result.set_share(pointshare.get_share() * multiplier);
     result.set_mac(pointshare.get_mac() * multiplier);
+}
+
+// Function for Scalar multiplication of a clear p256 and a shared gfp
+void ecscalarmulshare(P256Element point, Share<P256Element::Scalar> multiplierShare, Share<P256Element>& result){
+    result.set_share(point * multiplierShare.get_share());
+    result.set_mac(point * multiplierShare.get_mac());
 }
 
 template<template<class U> class T>
@@ -259,14 +266,35 @@ void run(int argc, const char** argv)
 
     ecShare mulgp = {};
     ecscalarmulshare(ec_inputs_shares[0][1], result, mulgp);
-    // mulgp.set_share(ec_inputs_shares[0][1].get_share() * result);
-    // mulgp.set_mac(ec_inputs_shares[0][1].get_mac() * result);
     ec_output.init_open(P);
     ec_output.prepare_open(mulgp);
     ec_output.exchange(P);
     ec_result = ec_output.finalize_open();
     cout << "-->" << ec_result << endl;
     ec_output.Check(P);
+
+    cout << "---- Multiply-G-P-dash [<x>]P ----" << thisplayer << endl;
+    if (P.my_num() == 0){
+        cout << "Expected result of Multiply-G-P: " << ec_result * pciinputs[1].sk << endl;
+    }
+
+    ecShare mulgp2 = {};
+    ecscalarmulshare(ec_result, inputs_shares[0][1], mulgp2);
+    ec_output.init_open(P);
+    ec_output.prepare_open(mulgp2);
+    ec_output.exchange(P);
+    ec_result = ec_output.finalize_open();
+    cout << "-->" << ec_result << endl;
+    ec_output.Check(P);
+
+    // EcBeaver<ecShare, scalarShare> ecprotocol(P);
+
+
+    // cout << "---- Multiply-G-S ----" << thisplayer << endl;
+    // EcBeaver<ecShare, scalarShare> ecprotocol(P);
+
+
+
     cout << "=====================" << endl;
     
 }
