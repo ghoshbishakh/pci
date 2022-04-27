@@ -13,7 +13,7 @@
 #include "ECDSA/preprocessing.hpp"
 #include "ECDSA/sign.hpp"
 #include "Protocols/Beaver.hpp"
-// #include "Protocols/EcBeaver.hpp"
+#include "Protocols/EcBeaver.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/MascotPrep.hpp"
 #include "Protocols/MascotEcPrep.hpp"
@@ -290,8 +290,25 @@ void run(int argc, const char** argv)
     // EcBeaver<ecShare, scalarShare> ecprotocol(P);
 
 
-    // cout << "---- Multiply-G-S ----" << thisplayer << endl;
-    // EcBeaver<ecShare, scalarShare> ecprotocol(P);
+    cout << "---- Multiply-G-S ----" << thisplayer << endl;
+    if (P.my_num() == 0){
+        cout << "Expected result of Multiply-G-S: " << pciinputs[1].Pk * pciinputs[1].sk << endl;
+    }
+
+    EcBeaver<ecShare, scalarShare> ecprotocol(P);
+    ecprotocol.init(preprocessing, ec_output, output);
+    ecprotocol.init_mul();
+    ecprotocol.prepare_scalar_mul(inputs_shares[0][1], ec_inputs_shares[0][1]);
+    ecprotocol.exchange();
+    ecShare ec_result_share = ecprotocol.finalize_mul();
+    
+    ec_output.init_open(P);
+    ec_output.prepare_open(ec_result_share);
+    ec_output.exchange(P);
+    ec_result = ec_output.finalize_open();
+    cout << "-->" << ec_result << endl;
+    ec_output.Check(P);
+
 
 
 
