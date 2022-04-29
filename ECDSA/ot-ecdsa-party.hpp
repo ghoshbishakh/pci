@@ -32,6 +32,22 @@ public:
     P256Element::Scalar sk;
     P256Element Pk;
     EcSignature signature;
+
+    void pack(octetStream& os) const
+    {
+        sk.pack(os);
+        Pk.pack(os);
+        signature.R.pack(os);
+        signature.s.pack(os);
+    }
+
+    void unpack(octetStream& os)
+    {
+        sk.unpack(os);
+        Pk.unpack(os);
+        signature.R.unpack(os);
+        signature.s.unpack(os);
+    }
 };
 
 // Function for Scalar multiplication of A p256 share and a clear gfp
@@ -121,30 +137,76 @@ void run(int argc, const char** argv)
     BaseMachine machine;
     machine.ot_setups.push_back({P, true});
 
-    
-    // Generate secret keys and signatures with them
-    cout << "generating random keys and signatures" << endl;
+
     vector<PCIInput> pciinputs;
-    P256Element::Scalar sk;
+    vector<PCIInput> generatedinputs;
+    int INPUTSIZE = 10;
+    int COMMON = 2;
+    int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
+    int secondPlayerInputIdx = INPUTSIZE - COMMON;
+    ClearInput<PCIInput> clearInput(P);
 
-    SeededPRNG G;
-    int INPUTSIZE = 3;
-    unsigned char* message = (unsigned char*)"this is a sample claim"; // 22
+    // Input generation , let P0 perform it
+    if (P.my_num() == 0){
+        // Generate secret keys and signatures with them
+        cout << "generating random keys and signatures" << endl;
+        P256Element::Scalar sk;
+
+        SeededPRNG G;
+        unsigned char* message = (unsigned char*)"this is a sample claim"; // 22
+        
+        for (int i = 0; i < TOTAL_GENERATED_INPUTS; i++)
+        {
+            // chose random sk
+            sk.randomize(G);
+
+            // create pk
+            P256Element Pk(sk);
+
+            // sign
+            EcSignature signature = sign(message, 22, sk);
+            check(signature, message, 22, Pk);
     
-    for (int i = 0; i < INPUTSIZE; i++)
-    {
-        // chose random sk
-        sk.randomize(G);
+            generatedinputs.push_back({sk, Pk, signature});
+        }
 
-        // create pk
-        P256Element Pk(sk);
+        cout << "distributing input keys and signatures" << endl;
+        
+        for (int i = 0; i < INPUTSIZE; i++){
+            pciinputs.push_back(generatedinputs[i]);
+            cout << pciinputs[i].Pk << pciinputs[i].signature.R << endl;
+        }
 
-        // sign
-        EcSignature signature = sign(message, 22, sk);
-        check(signature, message, 22, Pk);
- 
-        pciinputs.push_back({sk, Pk, signature});
+
+        clearInput.reset_all();
+        for (int i = secondPlayerInputIdx; i < TOTAL_GENERATED_INPUTS; i++){
+            clearInput.add_mine(generatedinputs[i]);
+        }
+        clearInput.exchange();
     }
+
+    if (P.my_num() == 1){
+        clearInput.reset_all();
+        for (int i = 0; i < INPUTSIZE; i++)
+        {
+            clearInput.add_other(0);
+        }
+        clearInput.exchange();
+        for (int i = 0; i < INPUTSIZE; i++)
+        {
+            pciinputs.push_back(clearInput.finalize(0));
+            cout << pciinputs[i].Pk << pciinputs[i].signature.R << endl;
+        }
+    }
+
+    cout << "==========  Input generation done ============" << endl;
+
+
+
+
+
+    return;
+
 
 
     DataPositions usage(P.num_players());

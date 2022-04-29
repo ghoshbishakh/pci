@@ -359,4 +359,87 @@ void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
     }
 }
 
+template<class T>
+ClearInput<T>::ClearInput(Player& P) :
+        P(P), clears(P.num_players())
+{
+}
+
+
+template<class T>
+void ClearInput<T>::reset_all()
+{
+    for (int i = 0; i < P.num_players(); i++)
+        {
+            os.resize(max(os.size(), i + 1UL));
+            os[i].reset_write_head();
+            clears[i].clear();
+        }
+}
+
+template<class T>
+void ClearInput<T>::add_mine(const open_type& input, int n_bits)
+{
+    (void) n_bits;
+    int player = P.my_num();
+    clears[player].push_back(input);
+    input.pack(this->os[player]);
+}
+
+template<class T>
+void ClearInput<T>::add_other(int player, int)
+{
+    open_type t;
+    clears.at(player).push_back({});
+}
+
+
+template<class T>
+void ClearInput<T>::send_mine()
+{
+    P.send_all(this->os[P.my_num()]);
+}
+
+template<class T>
+void ClearInput<T>::exchange()
+{
+    for (int i = 0; i < P.num_players(); i++){
+        if (i == P.my_num())
+            {send_mine();}
+        else
+            P.receive_player(i, os[i]);
+    }
+}
+
+template<class T>
+T ClearInput<T>::finalize_mine()
+{
+    return clears[P.my_num()].next();
+}
+
+template<class T>
+void ClearInput<T>::finalize_other(int player, T& target,
+        octetStream& o, int n_bits)
+{
+    (void) player;
+    (void) n_bits;
+    t.unpack(o);
+    target = t;
+}
+
+template<class T>
+T ClearInput<T>::finalize(int player, int n_bits)
+{
+    if (player == P.my_num())
+        return finalize_mine();
+    else
+    {
+        T res;
+        finalize_other(player, res, os[player], n_bits);
+        return res;
+    }
+}
+
+
+
 #endif

@@ -112,4 +112,32 @@ public:
     void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
 };
 
+
+template<class T>
+class ClearInput
+{
+    typedef T open_type;
+    vector<octetStream> os;
+
+    Player& P;
+    vector< PointerVector<T> > clears;
+    open_type t;
+
+public:
+    ClearInput(Player& P);
+
+    void reset_all();
+
+    void add_mine(const open_type& input, int n_bits = -1);
+    void add_other(int player, int n_bits = -1);
+
+    void send_mine();
+    void exchange();
+
+    T finalize_mine();
+    T finalize(int player, int n_bits=-1);
+    void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
+};
+
+
 #endif /* PROCESSOR_INPUT_H_ */

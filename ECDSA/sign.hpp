@@ -120,7 +120,7 @@ void check(EcSignature signature, const unsigned char* message, size_t length,
     auto u1 = hash_to_scalar(message, length) * w;
     auto u2 = signature.R.x() * w;
     assert(P256Element(u1) + pk * u2 == signature.R);
-    cout << "Offline checking took " << timer.elapsed() * 1e3 << " ms" << endl;
+    // cout << "Offline checking took " << timer.elapsed() * 1e3 << " ms" << endl;
 }
 
 template<template<class U> class T>
