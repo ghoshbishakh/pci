@@ -119,6 +119,14 @@ void run(int argc, const char** argv)
             "--no-macs" // Flag token.
     );
 
+    int INPUTSIZE = 100;
+    int COMMON = 2;
+    int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
+    int secondPlayerInputIdx = INPUTSIZE - COMMON;
+
+    OnlineOptions::singleton.batch_size = 10 * INPUTSIZE;
+
+
     // Setup network with two players
     Names N(opt, argc, argv, 2);
 
@@ -138,21 +146,17 @@ void run(int argc, const char** argv)
     vector<PCIInput> pciinputs;
     vector<PCIInput> generatedinputsA;
     vector<PCIInput> generatedinputsB;
-    int INPUTSIZE = 3;
-    int COMMON = 2;
-    int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
-    int secondPlayerInputIdx = INPUTSIZE - COMMON;
     ClearInput<PCIInput> clearInput(P);
     unsigned char* message = (unsigned char*)"this is a sample claim1"; // 23
     unsigned char* message2 = (unsigned char*)"this is a sample claim2"; // 23
 
     // Input generation , let P0 perform it
+    SeededPRNG G;
     if (P.my_num() == 0){
         // Generate secret keys and signatures with them
         cout << "generating random keys and signatures" << endl;
         P256Element::Scalar sk;
 
-        SeededPRNG G;
         
         for (int i = 0; i < TOTAL_GENERATED_INPUTS; i++)
         {
@@ -203,6 +207,9 @@ void run(int argc, const char** argv)
     }
 
     cout << "==========  Input generation done ============" << endl;
+    Timer timer;
+    timer.start();
+    auto stats = P.total_comm();
 
 
     DataPositions usage(P.num_players());
@@ -293,6 +300,9 @@ void run(int argc, const char** argv)
     }
     cout << "---- ec inputs shared ----" << thisplayer << endl;
 
+    auto tinput = timer.elapsed();
+    cout << "Input sharing took " << tinput * 1e3 << " ms" << endl;
+
 
     cout << " -------- compute ua1 ub1-----------" << endl;
     vector<scalarShare> u1_share[2];
@@ -322,8 +332,12 @@ void run(int argc, const char** argv)
         u2_share[1].push_back(processor.protocol.finalize_mul());
     }
 
+    auto tu = timer.elapsed();
+    cout << "Computing u1 u2 took " << (tu - tinput) * 1e3 << " ms" << endl;
+
+
     cout << " -------- Main loop -----------" << endl;
-    vector<ecShare> c_valid[2], c_right[2], c_final;
+    vector<ecShare> c_valid[2], c_right[2], c_final, c_final_randomized;
     ecprotocol.init_mul();
     for (int i = 0; i < INPUTSIZE; i++){
         ecprotocol.prepare_scalar_mul(u2_share[0][i], Pk_share[0][i]);
@@ -341,13 +355,40 @@ void run(int argc, const char** argv)
         c_valid[1].push_back(c_right[1][i] + u1_share[1][i] - R_share[1][i]);
     }
 
-    ec_output.init_open(P);
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
             c_final.push_back(c_valid[0][i] + c_valid[1][j] + (Pk_share[0][i] - Pk_share[1][j]));
-            ec_output.prepare_open(c_final.back());
         }
     }
+
+    auto tc = timer.elapsed();
+    cout << "Computing C' took " << (tc - tu) * 1e3 << " ms" << endl;
+
+    
+    ecprotocol.init_mul();
+    // randomize c_final
+    cout << "generate randoms" << endl;
+    vector<scalarShare> myrandomshares;
+    scalarShare __;
+    for (int i = 0; i < INPUTSIZE; i++){
+        for (int j = 0; j < INPUTSIZE; j++){
+            typename scalarShare::clear tmp;
+            myrandomshares.push_back({});
+            preprocessing.get_two(DATA_INVERSE, myrandomshares.back(), __);
+            ecprotocol.prepare_scalar_mul(myrandomshares.back(), c_final[INPUTSIZE*i + j]);;
+        }
+    }
+    cout << "-- done --" << endl;
+
+    ecprotocol.exchange();
+    ec_output.init_open(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        for (int j = 0; j < INPUTSIZE; j++){
+            c_final_randomized.push_back(ecprotocol.finalize_mul());
+            ec_output.prepare_open(c_final_randomized.back());
+        }
+    }
+
     vector<typename ecShare::clear> condition_result[INPUTSIZE];
     ec_output.exchange(P);
     for (int i = 0; i < INPUTSIZE; i++){
@@ -377,6 +418,10 @@ void run(int argc, const char** argv)
         }
     }
     ec_output.Check(P);
+
+    cout << "Final time' " << timer.elapsed() * 1e3 << " ms" << endl;
+    (P.total_comm() - stats).print(true);
+
 
     return;
 
