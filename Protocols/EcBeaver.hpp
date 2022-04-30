@@ -127,6 +127,8 @@ T EcBeaver<T, V>::finalize_mul(int n)
     C += tmpec;
     C += T::constant(maskedEc * maskedScalar, P.my_num(), MCec->get_alphai());
     triple++;
+    itScalar++;
+    itEc++;
     return C;
 }
 
