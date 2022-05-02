@@ -183,7 +183,7 @@ enum
     // IO
     PRINTMEM = 0xB0,
     PRINTREG = 0XB1,
-    RAND = 0xB2,
+    _RAND = 0xB2,
     PRINTREGPLAIN = 0xB3,
     PRINTCHR = 0xB4,
     PRINTSTR = 0xB5,

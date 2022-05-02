@@ -9,9 +9,9 @@
 #include <openssl/ec.h>
 #include <openssl/obj_mac.h>
 
-// extern "C" {
-// #include <relic/relic_bn.h>
-// }
+extern "C" {
+#include <relic/relic_bn.h>
+}
 
 #include "Math/gfp.h"
 
@@ -22,7 +22,7 @@ public:
 
 private:
     static EC_GROUP* curve;
-    // static bn_t gtcurve;
+    static bn_t gtcurve;
 
     EC_POINT* point;
 

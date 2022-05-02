@@ -1853,7 +1853,7 @@ class rand(base.Instruction):
     :param: length (regint)
     """
     __slots__ = []
-    code = base.opcodes['RAND']
+    code = base.opcodes['_RAND']
     arg_format = ['ciw','ci']
 
 ###

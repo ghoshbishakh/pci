@@ -12,7 +12,7 @@ EC_GROUP* GtElement::curve;
 void GtElement::init()
 {
     curve = EC_GROUP_new_by_curve_name(NID_secp256k1);
-    // bn_null(gtcurve);
+    bn_null(gtcurve);
     assert(curve != 0);
     auto modulus = EC_GROUP_get0_order(curve);
     Scalar::init_field(BN_bn2dec(modulus), false);
