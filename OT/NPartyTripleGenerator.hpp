@@ -312,8 +312,8 @@ void MascotTripleGenerator<T>::generateBitsGf2n()
         this->wait_for_multipliers();
         this->timers["Authentication OTs"].stop();
 
-        octet seed[SEED_SIZE];
-        Create_Random_Seed(seed, this->globalPlayer, SEED_SIZE);
+        octet seed[MPSPDZ_SEED_SIZE];
+        Create_Random_Seed(seed, this->globalPlayer, MPSPDZ_SEED_SIZE);
         PRNG G;
         G.SetSeed(seed);
 
@@ -402,8 +402,8 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 		this->wait_for_multipliers();
 		timers["OTs"].stop();
 
-		octet seed[SEED_SIZE];
-		Create_Random_Seed(seed, globalPlayer, SEED_SIZE);
+		octet seed[MPSPDZ_SEED_SIZE];
+		Create_Random_Seed(seed, globalPlayer, MPSPDZ_SEED_SIZE);
 		PRNG G;
 		G.SetSeed(seed);
 
@@ -610,8 +610,8 @@ void SimpleMascotTripleGenerator<U>::generateTriples()
                 ot_multipliers[0]->otCorrelator.common_seed(G);
             else
             {
-                octet seed[SEED_SIZE];
-                Create_Random_Seed(seed, globalPlayer, SEED_SIZE);
+                octet seed[MPSPDZ_SEED_SIZE];
+                Create_Random_Seed(seed, globalPlayer, MPSPDZ_SEED_SIZE);
                 G.SetSeed(seed);
             }
             for (int iTriple = 0; iTriple < nTriplesPerLoop; iTriple++)

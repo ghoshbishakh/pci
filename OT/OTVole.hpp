@@ -187,12 +187,12 @@ void OTVoleBase<T>::consistency_check(vector<octetStream>& os) {
 
     if (this->ot_role & RECEIVER) {
     	coef_prng_receiver.ReSeed();
-    	os[0].append(coef_prng_receiver.get_seed(), SEED_SIZE);
+    	os[0].append(coef_prng_receiver.get_seed(), MPSPDZ_SEED_SIZE);
     }
     send_if_ot_receiver(this->player, os, this->ot_role);
     if (this->ot_role & SENDER) {
-        octet seed[SEED_SIZE];
-        os[1].consume(seed, SEED_SIZE);
+        octet seed[MPSPDZ_SEED_SIZE];
+        os[1].consume(seed, MPSPDZ_SEED_SIZE);
         coef_prng_sender.SetSeed(seed);
     }
     os[0].reset_write_head();

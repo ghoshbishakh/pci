@@ -37,7 +37,7 @@ void Proof::set_challenge(const octetStream& ciphertexts)
 {
   octetStream hash = ciphertexts.hash();
   PRNG G;
-  assert(hash.get_length() >= SEED_SIZE);
+  assert(hash.get_length() >= MPSPDZ_SEED_SIZE);
   G.SetSeed(hash.get_data());
   set_challenge(G);
 }

@@ -7,7 +7,7 @@ void Commit(octetStream& comm,octetStream& open,const octetStream& message, int 
 {
     open.store(send_player);
     open.append(message.get_data(), message.get_length());
-    open.append_random(SEED_SIZE);
+    open.append_random(MPSPDZ_SEED_SIZE);
     comm = open.hash();
 }
 
@@ -22,14 +22,14 @@ bool Open(octetStream& message,const octetStream& comm,const octetStream& open, 
         return false;
     }
     message.reset_write_head();
-    message.append(open_bytes + sizeof(int), open.get_length() - SEED_SIZE - sizeof(int));
+    message.append(open_bytes + sizeof(int), open.get_length() - MPSPDZ_SEED_SIZE - sizeof(int));
     return true;
 }
 
 void Commitment::commit(const octetStream& message)
 {
     open.reset_write_head();
-    open.append_random(SEED_SIZE);
+    open.append_random(MPSPDZ_SEED_SIZE);
     commit(message, open);
 }
 

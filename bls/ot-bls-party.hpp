@@ -7,7 +7,8 @@
 #include "Networking/CryptoPlayer.h"
 #include "Math/gfp.h"
 #include "bls/P256Element.h"
-#include "bls/blsElement.h"
+
+
 #include "Protocols/SemiShare.h"
 #include "Processor/BaseMachine.h"
 
@@ -26,6 +27,14 @@
 #include "GC/CcdPrep.hpp"
 
 #include <assert.h>
+#include "bls/blsElement.h"
+
+// extern "C" {
+// #include <relic/relic_core.h>
+// #include <relic/relic_bn.h>
+// #include <relic/relic_pc.h>
+// #include <relic/relic_cp.h>
+// }
 
 class PCIInput
 {
@@ -127,15 +136,104 @@ void run(int argc, const char** argv)
 
     // Setup PlainPlayer
     PlainPlayer P(N, "bls");
-    
+   
+    BaseMachine machine;
+    machine.ot_setups.push_back({P, true});
+
+    cout << "Testing relic " << endl;
+     
     // Initialize curve and field
     // Initializes the field order to same as curve order 
+    GtElement::init_relic();
     GtElement::init();
+
     // Initialize scalar:next with same order as field order. ??
     GtElement::Scalar::next::init_field(GtElement::Scalar::pr(), false);
     
-    BaseMachine machine;
-    machine.ot_setups.push_back({P, true});
+    cout << GtElement::Scalar::pr() << endl;
+    cout << GtElement::Scalar::next::pr() << endl;
+
+    SeededPRNG G;
+    P256Element::Scalar sk;
+    sk.randomize(G);
+    GtElement pp(sk);
+
+    // if (core_init() != RLC_OK) {
+	// 	core_clean();
+	// 	return;
+	// }
+    // pc_param_set_any();
+
+    // cout << "-----------" << endl;
+    // bn_t g1_order, g2_order, gt_order;
+    // bn_null(g1_order);
+    // bn_null(g2_order);
+    // bn_null(gt_order);
+    // g1_get_ord(g1_order);
+    // g2_get_ord(g2_order);
+    // gt_get_ord(gt_order);
+    // bn_print(g1_order);
+    // bn_print(g2_order);
+    // bn_print(gt_order);
+    // cout << "-----------" << endl;
+
+
+	// bn_t sk1, sk2;
+    // g1_t sig1, sig2, sig;
+	// g2_t pk1, pk2, pk;
+	// uint8_t m[5] = { 0, 1, 2, 3, 4 };
+
+	// bn_null(sk1);
+	// bn_null(sk2);
+    // bn_new(sk1);
+    // bn_new(sk2);
+    // g1_new(sig1);
+    // g1_new(sig2);
+    // g2_new(pk1);
+    // g2_new(pk2);
+
+    // assert(cp_bls_gen(sk1, pk1) == RLC_OK);
+    // assert(cp_bls_gen(sk2, pk2) == RLC_OK);
+    // cout << "gen" << endl;
+    // assert(cp_bls_sig(sig1, m, sizeof(m), sk1) == RLC_OK);
+    // assert(cp_bls_sig(sig2, m, sizeof(m), sk2) == RLC_OK);
+    // cout << "sig" << endl;
+    // assert(cp_bls_ver(sig1, m, sizeof(m), pk1) == 1);
+    // assert(cp_bls_ver(sig2, m, sizeof(m), pk2) == 1);
+    // cout << "ver" << endl;
+
+    // g1_add(sig, sig1, sig2);
+    // g2_add(pk, pk1, pk2);
+    // assert(cp_bls_ver(sig, m, sizeof(m), pk) == 1);
+    // cout << "ver aggregate" << endl;
+
+    // // scalar multiplication
+	// bn_t skbn;
+    // bn_null(skbn);
+    // bn_new(skbn);
+    // SeededPRNG G;
+    // P256Element::Scalar sk;
+    // sk.randomize(G);
+    // string skstr = bigint(sk).get_str();
+    // cout << skstr << endl;
+    // cout << skstr.c_str() << endl;
+    // int sklen = skstr.size();
+    // cout << sklen << endl;
+    // cout << strlen(skstr.c_str()) << endl;
+    // bn_read_str(skbn, skstr.c_str(), sklen, 10);
+    // bn_print(skbn);
+    // cout << "===================" << endl;
+
+    // char * bnout = (char *)malloc(100 * sizeof(char));
+    // bn_write_str(bnout, 100, skbn, 10);
+    // printf("%s\n", bnout);
+
+    // cout << "===================" << endl;
+    // gt_t pairval;
+    // gt_new(pairval);
+    // gt_free(pairval);
+    // gt_mul(pairval, pairval, pairval);
+    // core_clean();
 
 
     // vector<PCIInput> pciinputs;

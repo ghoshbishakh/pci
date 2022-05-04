@@ -16,7 +16,7 @@ Rep4<T>::Rep4(Player& P) :
 
     octetStreams to_send(P), to_receive;
     for (int i = 1; i < 3; i++)
-        to_send[P.get_player(-i)].append(rep_prngs[0].get_seed(), SEED_SIZE);
+        to_send[P.get_player(-i)].append(rep_prngs[0].get_seed(), MPSPDZ_SEED_SIZE);
 
     P.send_receive_all(to_send, to_receive);
 

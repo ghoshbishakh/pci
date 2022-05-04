@@ -19,13 +19,13 @@ SemiInput<T>::SemiInput(SubProcessor<T>* proc, PlayerBase& P) :
     for (int i = 0; i < P.num_players(); i++)
     {
         send_prngs.push_back({});
-        to_send[i].append(send_prngs.back().get_seed(), SEED_SIZE);
+        to_send[i].append(send_prngs.back().get_seed(), MPSPDZ_SEED_SIZE);
     }
     P.send_receive_all(to_send, to_receive);
     recv_prngs.resize(P.num_players());
     for (int i = 0; i < P.num_players(); i++)
         if (i != P.my_num())
-            recv_prngs[i].SetSeed(to_receive[i].consume(SEED_SIZE));
+            recv_prngs[i].SetSeed(to_receive[i].consume(MPSPDZ_SEED_SIZE));
     this->reset_all(P);
 }
 

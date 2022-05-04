@@ -68,6 +68,7 @@ endif
 # GFP_MOD_SZ only needs to be set for primes of bit length more that 256.
 # Default for MAX_MOD_SZ is 10, which suffices for all Overdrive protocols
 # MOD = -DMAX_MOD_SZ=10 -DGFP_MOD_SZ=5
+LIBRELIC = -lrelic_s
 
 LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS)
 LDLIBS += -lboost_system -lssl -lcrypto

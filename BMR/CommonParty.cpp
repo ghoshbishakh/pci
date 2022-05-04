@@ -24,7 +24,7 @@ CommonParty::CommonParty() :
 	singleton = this;
 	prng.ReSeed();
 #ifdef DEBUG_PRNG
-	octet seed[SEED_SIZE];
+	octet seed[MPSPDZ_SEED_SIZE];
 	memset(seed, 0, sizeof(seed));
 	prng.SetSeed(seed);
 #endif
