@@ -544,3 +544,264 @@ void G1Element::input(istream& s,bool human)
 }
 
 
+
+
+
+
+
+
+// ==============================================
+
+
+
+
+
+
+
+
+void G2Element::print_point()
+{
+    g2_print(g2point);
+}
+
+G2Element::G2Element()
+{
+    g2_null(g2point);
+    g2_new(g2point);
+    g2_set_infty(g2point);
+}
+
+G2Element::G2Element(const Scalar& other) :
+        G2Element()
+{
+    bn_t x;
+    bn_null(x);
+    bn_new(x);
+    string scalar_str = bigint(other).get_str();
+    int scalar_len = scalar_str.size();
+    bn_read_str(x, scalar_str.c_str(), scalar_len, 10);
+    g2_mul_gen(g2point, x);
+    bn_free(x);
+}
+
+
+G2Element::G2Element(word other) :
+        G2Element()
+{
+    bn_t x;
+    bn_null(x);
+    bn_new(x);
+    string scalar_str = to_string(other);
+    int scalar_len = scalar_str.size();
+    bn_read_str(x, scalar_str.c_str(), scalar_len, 10);
+    g2_mul_gen(g2point, x);
+    bn_free(x);
+}
+
+G2Element& G2Element::operator =(const G2Element& other)
+{
+    g2_t tmp;
+    g2_null(tmp);
+    g2_new(tmp);
+    memcpy(tmp, other.g2point, sizeof(other.g2point));
+    g2_copy(g2point, tmp);
+    g2_free(tmp);
+    return *this;
+}
+
+// void G2Element::check()
+// {
+//     assert(EC_POINT_is_on_curve(curve, point, 0) == 1);
+// }
+
+// G2Element::Scalar G2Element::x() const
+// {
+//     BIGNUM* x = BN_new();
+//     assert(EC_POINT_get_affine_coordinates_GFp(curve, point, x, 0, 0) != 0);
+//     char* xx = BN_bn2dec(x);
+//     Scalar res((bigint(xx)));
+//     OPENSSL_free(xx);
+//     BN_free(x);
+//     return res;
+// }
+
+G2Element G2Element::operator +(const G2Element& other) const
+{
+    G2Element res;
+
+    g2_t tmp1, tmp2;
+    g2_null(tmp1); g2_null(tmp2);
+    g2_new(tmp1); g2_new(tmp2);
+    memcpy(tmp1, other.g2point, sizeof(other.g2point));
+    memcpy(tmp2, g2point, sizeof(g2point));
+    g2_add(res.g2point, tmp2, tmp1);
+        
+    g2_free(tmp1); g2_free(tmp2);
+
+    return res;
+}
+
+G2Element G2Element::operator -(const G2Element& other) const
+{
+    G2Element res;
+
+    g2_t tmp1, tmp2;
+    g2_null(tmp1); g2_null(tmp2);
+    g2_new(tmp1); g2_new(tmp2);
+    memcpy(tmp1, other.g2point, sizeof(other.g2point));
+    memcpy(tmp2, g2point, sizeof(g2point));
+    g2_sub(res.g2point, tmp2, tmp1);
+        
+    g2_free(tmp1); g2_free(tmp2);
+
+    return res;
+}
+
+G2Element G2Element::operator *(const Scalar& other) const
+{
+    G2Element res;
+    g2_t tmp;
+    g2_null(tmp);
+    g2_new(tmp);
+    memcpy(tmp, g2point, sizeof(g2point));
+    bn_t x;
+    bn_null(x);
+    bn_new(x);
+    string scalar_str = bigint(other).get_str();
+    int scalar_len = scalar_str.size();
+    bn_read_str(x, scalar_str.c_str(), scalar_len, 10);
+    g2_mul(res.g2point, tmp, x);
+    bn_free(x);
+    g2_free(tmp);
+
+    return res;
+}
+
+bool G2Element::operator ==(const G2Element& other) const
+{
+    g2_t tmp1, tmp2;
+    g2_null(tmp1); g2_null(tmp2);
+    g2_new(tmp1); g2_new(tmp2);
+    memcpy(tmp1, g2point, sizeof(g2point));
+    memcpy(tmp2, other.g2point, sizeof(other.g2point));
+    
+    if(g2_cmp(tmp1, tmp2) == RLC_EQ){
+        g2_free(tmp1); g2_free(tmp2);
+        return 1;
+    }
+    
+    g2_free(tmp1); g2_free(tmp2);
+    return 0;
+}
+
+void G2Element::pack(octetStream& os) const
+{
+    g2_t tmp;
+    g2_null(tmp);
+    g2_new(tmp);
+    memcpy(tmp, g2point, sizeof(g2point));
+    int binsize = g2_size_bin(tmp, 0);
+    uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
+    g2_write_bin(gtoutstr, binsize, tmp, 0);
+    os.store_int(binsize, 8);
+    os.append(gtoutstr, binsize);
+    g2_free(tmp);
+    free(gtoutstr);
+}
+
+void G2Element::unpack(octetStream& os)
+{
+    size_t binsize = os.get_int(8);
+    g2_read_bin(g2point, os.consume(binsize), binsize);
+}
+
+ostream& operator <<(ostream& s, const G2Element& x)
+{
+    g2_t tmp;
+    g2_null(tmp);
+    g2_new(tmp);
+    memcpy(tmp, x.g2point, sizeof(x.g2point));
+    int binsize = g2_size_bin(tmp, 0);
+    uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
+    g2_write_bin(gtoutstr, binsize, tmp, 0);
+    for(int i=0; i<binsize; ++i){
+        s << hex << (int)gtoutstr[i];
+    }
+    g2_free(tmp);
+    free(gtoutstr);
+    return s;
+}
+
+void G2Element::output(ostream& s,bool human) const
+{
+    (void) human;
+    g2_t tmp;
+    g2_null(tmp);
+    g2_new(tmp);
+    memcpy(tmp, g2point, sizeof(g2point));
+    int binsize = g2_size_bin(tmp, 0);
+    g2_free(tmp);
+    uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
+    g2_write_bin(gtoutstr, binsize, tmp, 0);
+    for(int i=0; i<binsize; ++i){
+        s << hex << (int)gtoutstr[i];
+    }
+    g2_free(tmp);
+    free(gtoutstr);
+}
+
+
+G2Element::G2Element(const G2Element& other) :
+        G2Element()
+{
+    *this = other;
+}
+
+G2Element operator*(const G2Element::Scalar& x, const G2Element& y)
+{
+    return y * x;
+}
+
+G2Element& G2Element::operator +=(const G2Element& other)
+{
+    *this = *this + other;
+    return *this;
+}
+
+// G2Element& G2Element::operator /=(const Scalar& other)
+// {
+//     *this = *this * other.invert();
+//     return *this;
+// }
+
+bool G2Element::operator !=(const G2Element& other) const
+{
+    return not (*this == other);
+}
+
+// octetStream G2Element::hash(size_t n_bytes) const
+// {
+//     octetStream os;
+//     pack(os);
+//     auto res = os.hash();
+//     assert(n_bytes >= res.get_length());
+//     res.resize_precise(n_bytes);
+//     return res;
+// }
+
+void G2Element::randomize(PRNG& G, int n)
+{
+    (void) n;
+    G2Element::Scalar newscalar;
+    newscalar.randomize(G, n);
+    g2_copy(g2point, G2Element(newscalar).g2point);
+}
+
+void G2Element::input(istream& s,bool human)
+{ 
+    (void) s;
+    (void) human;
+    throw runtime_error("gt input not implemented");
+}
+
+

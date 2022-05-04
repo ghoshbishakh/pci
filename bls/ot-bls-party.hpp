@@ -178,6 +178,7 @@ void run(int argc, const char** argv)
     sk.randomize(G);
     GtElement gtval(sk);
     G1Element g1val(sk);
+    G2Element g2val(sk);
     sk.randomize(G);
     GtElement gtval3(sk);
 
@@ -267,6 +268,41 @@ void run(int argc, const char** argv)
     cout << "-->" << g1_result << endl;
     g1_output.Check(P);
 
+
+
+
+
+
+    // g2 processing units ====================
+    typedef T<G2Element> g2Share;
+
+    MascotEcPrep<g2Share, scalarShare> g2_preprocessing(usage, preprocessing);
+    
+    typename g2Share::mac_key_type g2_mac_key;
+    g2Share::read_or_generate_mac_key("", P, g2_mac_key);
+
+
+    typename g2Share::Direct_MC g2_output(output.get_alphai());
+    
+
+    typename g2Share::Input g2_input(g2_output, g2_preprocessing, P);
+
+
+    vector<g2Share> g2_inputs_shares[2];
+    g2_input.reset_all(P);
+    g2_input.add_from_all(g2val);
+    g2_input.exchange();
+    g2_inputs_shares[0].push_back(g2_input.finalize(0));
+    g2_inputs_shares[1].push_back(g2_input.finalize(1));
+
+    typename g2Share::clear g2_result;
+    g2_output.init_open(P);
+    g2_output.prepare_open(g2_inputs_shares[0][0]);
+    g2_output.exchange(P);
+    g2_result = g2_output.finalize_open();
+    cout << "-->" << g2val << endl;
+    cout << "-->" << g2_result << endl;
+    g2_output.Check(P);
 
 // 
     // EcBeaver<g1Share, scalarShare> ecprotocol(P);
