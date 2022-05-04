@@ -156,7 +156,34 @@ void run(int argc, const char** argv)
     SeededPRNG G;
     P256Element::Scalar sk;
     sk.randomize(G);
-    GtElement pp(sk);
+    GtElement gtval(sk);
+    sk.randomize(G);
+    GtElement gtval3(sk);
+
+    gtval.print_point();
+    GtElement gtval2 = gtval;
+    cout << "----" << endl;
+    gtval2.print_point();
+
+    cout <<(gtval2 == gtval) << endl;
+    cout <<(gtval2 == gtval3) << endl;
+
+    cout << gtval << endl;
+    cout << gtval2 << endl;
+    cout << gtval3 << endl;
+
+    typedef T<GtElement::Scalar> scalarShare;
+    scalarShare a;
+    cout << a << endl;
+
+    typedef T<GtElement> gtShare;
+    gtShare p,q;
+    cout << p << endl;
+
+
+
+
+
 
     // if (core_init() != RLC_OK) {
 	// 	core_clean();

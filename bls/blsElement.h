@@ -20,9 +20,9 @@ class GtElement : public ValueInterface
 {
 public:
     typedef gfp_<2, 4> Scalar;
-    gt_t gtpoint;
 
 private:
+    gt_t gtpoint;
     static bool relic_initialized;
     static gt_t gtgenerator;
 
@@ -39,13 +39,14 @@ public:
 
     static void init();
     static void init_relic();
+    void print_point();
 
     GtElement();
     GtElement(const GtElement& other);
     GtElement(const Scalar& other);
     // GtElement(word other);
 
-    // GtElement& operator=(const GtElement& other);
+    GtElement& operator=(const GtElement& other);
 
     // void check();
 
@@ -62,10 +63,10 @@ public:
     // GtElement& operator+=(const GtElement& other);
     // GtElement& operator/=(const Scalar& other);
 
-    // bool operator==(const GtElement& other) const;
+    bool operator==(const GtElement& other) const;
     // bool operator!=(const GtElement& other) const;
 
-    // void assign_zero() { *this = {}; }
+    void assign_zero() { *this = {}; }
     // bool is_zero() { return *this == GtElement(); }
     // void add(octetStream& os) { *this += os.get<GtElement>(); }
 
@@ -74,7 +75,9 @@ public:
 
     // octetStream hash(size_t n_bytes) const;
 
-    // friend ostream& operator<<(ostream& s, const GtElement& x);
+    friend ostream& operator<<(ostream& s, const GtElement& x);
+    void output(ostream& s,bool human) const;
+
 };
 
 // GtElement operator*(const GtElement::Scalar& x, const GtElement& y);

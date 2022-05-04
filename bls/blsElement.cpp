@@ -20,6 +20,11 @@ void GtElement::init_relic()
     }
 }
 
+void GtElement::print_point()
+{
+    gt_print(gtpoint);
+}
+
 void GtElement::init() {
     // set order of Fp to gt
     bn_t gt_order;
@@ -39,7 +44,7 @@ GtElement::GtElement()
 {
     gt_null(gtpoint);
     gt_new(gtpoint);
-    gt_set_unity(gtpoint);
+    gt_zero(gtpoint);
 }
 
 GtElement::GtElement(const Scalar& other) :
@@ -64,11 +69,16 @@ GtElement::GtElement(const Scalar& other) :
 //     BN_free(exp);
 // }
 
-// GtElement& GtElement::operator =(const GtElement& other)
-// {
-//     assert(EC_POINT_copy(point, other.point) != 0);
-//     return *this;
-// }
+GtElement& GtElement::operator =(const GtElement& other)
+{
+    gt_t tmp;
+    gt_null(tmp);
+    gt_new(tmp);
+    memcpy(tmp, other.gtpoint, sizeof(other.gtpoint));
+    gt_copy(gtpoint, tmp);
+    gt_free(tmp);
+    return *this;
+}
 
 // void GtElement::check()
 // {
@@ -110,12 +120,22 @@ GtElement::GtElement(const Scalar& other) :
 //     return res;
 // }
 
-// bool GtElement::operator ==(const GtElement& other) const
-// {
-//     int cmp = EC_POINT_cmp(curve, point, other.point, 0);
-//     assert(cmp == 0 or cmp == 1);
-//     return not cmp;
-// }
+bool GtElement::operator ==(const GtElement& other) const
+{
+    gt_t tmp1, tmp2;
+    gt_null(tmp1); gt_null(tmp2);
+    gt_new(tmp1); gt_new(tmp2);
+    memcpy(tmp1, gtpoint, sizeof(gtpoint));
+    memcpy(tmp2, other.gtpoint, sizeof(other.gtpoint));
+    
+    if(gt_cmp(tmp1, tmp2) == RLC_EQ){
+        gt_free(tmp1); gt_free(tmp2);
+        return 1;
+    }
+    
+    gt_free(tmp1); gt_free(tmp2);
+    return 0;
+}
 
 // void GtElement::pack(octetStream& os) const
 // {
@@ -135,22 +155,48 @@ GtElement::GtElement(const Scalar& other) :
 //                     != 0);
 // }
 
-// ostream& operator <<(ostream& s, const GtElement& x)
-// {
-//     int size = gt_size_bin(x.gtpoint, 0);
-//     uint8_t * gtoutstr = (uint8_t *)malloc(100 * sizeof(uint8_t));
-//     gt_write_bin(gtoutstr, 100, x.gtpoint, 0);
-//     s << gtoutstr;
-//     gt_free(tmp);
-//     free(gtoutstr);
-//     return s;
-// }
+ostream& operator <<(ostream& s, const GtElement& x)
+{
+    gt_t tmp;
+    gt_null(tmp);
+    gt_new(tmp);
+    memcpy(tmp, x.gtpoint, sizeof(x.gtpoint));
+    int binsize = gt_size_bin(tmp, 0);
+    gt_free(tmp);
+    uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
+    gt_write_bin(gtoutstr, binsize, tmp, 0);
+    for(int i=0; i<binsize; ++i){
+        s << hex << (int)gtoutstr[i];
+    }
+    gt_free(tmp);
+    free(gtoutstr);
+    return s;
+}
 
-// GtElement::GtElement(const GtElement& other) :
-//         GtElement()
-// {
-//     *this = other;
-// }
+void GtElement::output(ostream& s,bool human) const
+{
+    (void) human;
+    gt_t tmp;
+    gt_null(tmp);
+    gt_new(tmp);
+    memcpy(tmp, gtpoint, sizeof(gtpoint));
+    int binsize = gt_size_bin(tmp, 0);
+    gt_free(tmp);
+    uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
+    gt_write_bin(gtoutstr, binsize, tmp, 0);
+    for(int i=0; i<binsize; ++i){
+        s << hex << (int)gtoutstr[i];
+    }
+    gt_free(tmp);
+    free(gtoutstr);
+}
+
+
+GtElement::GtElement(const GtElement& other) :
+        GtElement()
+{
+    *this = other;
+}
 
 // GtElement operator*(const GtElement::Scalar& x, const GtElement& y)
 // {
