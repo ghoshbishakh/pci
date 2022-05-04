@@ -177,6 +177,7 @@ void run(int argc, const char** argv)
     P256Element::Scalar sk;
     sk.randomize(G);
     GtElement gtval(sk);
+    G1Element g1val(sk);
     sk.randomize(G);
     GtElement gtval3(sk);
 
@@ -201,6 +202,7 @@ void run(int argc, const char** argv)
     cout << p << endl;
 
 
+    // gt processing units ====================
 
     MascotEcPrep<gtShare, scalarShare> gt_preprocessing(usage, preprocessing);
     
@@ -215,7 +217,8 @@ void run(int argc, const char** argv)
 // 
     // EcBeaver<gtShare, scalarShare> ecprotocol(P);
     // ecprotocol.init(preprocessing, gt_output, output);
-
+    // ============================================
+ 
     vector<gtShare> gt_inputs_shares[2];
     gt_input.reset_all(P);
     gt_input.add_from_all(gtval);
@@ -231,6 +234,45 @@ void run(int argc, const char** argv)
     cout << "-->" << gtval << endl;
     cout << "-->" << gt_result << endl;
     gt_output.Check(P);
+
+
+    // g1 processing units ====================
+    typedef T<G1Element> g1Share;
+
+    MascotEcPrep<g1Share, scalarShare> g1_preprocessing(usage, preprocessing);
+    
+    typename g1Share::mac_key_type g1_mac_key;
+    g1Share::read_or_generate_mac_key("", P, g1_mac_key);
+
+
+    typename g1Share::Direct_MC g1_output(output.get_alphai());
+    
+
+    typename g1Share::Input g1_input(g1_output, g1_preprocessing, P);
+
+
+    vector<g1Share> g1_inputs_shares[2];
+    g1_input.reset_all(P);
+    g1_input.add_from_all(g1val);
+    g1_input.exchange();
+    g1_inputs_shares[0].push_back(g1_input.finalize(0));
+    g1_inputs_shares[1].push_back(g1_input.finalize(1));
+
+    typename g1Share::clear g1_result;
+    g1_output.init_open(P);
+    g1_output.prepare_open(g1_inputs_shares[0][0]);
+    g1_output.exchange(P);
+    g1_result = g1_output.finalize_open();
+    cout << "-->" << g1val << endl;
+    cout << "-->" << g1_result << endl;
+    g1_output.Check(P);
+
+
+// 
+    // EcBeaver<g1Share, scalarShare> ecprotocol(P);
+    // ecprotocol.init(preprocessing, gt_output, output);
+    // ============================================
+
 
     // if (core_init() != RLC_OK) {
 	// 	core_clean();
