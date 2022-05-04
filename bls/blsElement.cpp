@@ -35,6 +35,7 @@ void GtElement::init() {
     bn_write_str(gt_order_str, 100, gt_order, 10);
     Scalar::init_field(gt_order_str, false);
     // get generator
+    gt_new(gtgenerator);
     gt_get_gen(gtgenerator);
     free(gt_order_str);
     bn_free(gt_order);
@@ -44,7 +45,7 @@ GtElement::GtElement()
 {
     gt_null(gtpoint);
     gt_new(gtpoint);
-    gt_zero(gtpoint);
+    gt_set_unity(gtpoint);
 }
 
 GtElement::GtElement(const Scalar& other) :
@@ -68,6 +69,19 @@ GtElement::GtElement(const Scalar& other) :
 //     assert(EC_POINTs_mul(curve, point, exp, 0, 0, 0, 0) != 0);
 //     BN_free(exp);
 // }
+
+GtElement::GtElement(word other) :
+        GtElement()
+{
+    bn_t x;
+    bn_null(x);
+    bn_new(x);
+    string scalar_str = to_string(other);
+    int scalar_len = scalar_str.size();
+    bn_read_str(x, scalar_str.c_str(), scalar_len, 10);
+    gt_exp(gtpoint, gtgenerator, x);
+    bn_free(x);
+}
 
 GtElement& GtElement::operator =(const GtElement& other)
 {
@@ -96,29 +110,58 @@ GtElement& GtElement::operator =(const GtElement& other)
 //     return res;
 // }
 
-// GtElement GtElement::operator +(const GtElement& other) const
-// {
-//     GtElement res;
-//     assert(EC_POINT_add(curve, res.point, point, other.point, 0) != 0);
-//     return res;
-// }
+GtElement GtElement::operator +(const GtElement& other) const
+{
+    // define + as multiplication
+    GtElement res;
 
-// GtElement GtElement::operator -(const GtElement& other) const
-// {
-//     GtElement tmp = other;
-//     assert(EC_POINT_invert(curve, tmp.point, 0) != 0);
-//     return *this + tmp;
-// }
+    gt_t tmp1, tmp2;
+    gt_null(tmp1); gt_null(tmp2);
+    gt_new(tmp1); gt_new(tmp2);
+    memcpy(tmp1, other.gtpoint, sizeof(other.gtpoint));
+    memcpy(tmp2, gtpoint, sizeof(gtpoint));
+    gt_mul(res.gtpoint, tmp2, tmp1);
+        
+    gt_free(tmp1); gt_free(tmp2);
 
-// GtElement GtElement::operator *(const Scalar& other) const
-// {
-//     GtElement res;
-//     BIGNUM* exp = BN_new();
-//     BN_dec2bn(&exp, bigint(other).get_str().c_str());
-//     assert(EC_POINT_mul(curve, res.point, 0, point, exp, 0) != 0);
-//     BN_free(exp);
-//     return res;
-// }
+    return res;
+}
+
+GtElement GtElement::operator -(const GtElement& other) const
+{
+    GtElement res;
+
+    gt_t tmp1, tmp2;
+    gt_null(tmp1); gt_null(tmp2);
+    gt_new(tmp1); gt_new(tmp2);
+    memcpy(tmp1, other.gtpoint, sizeof(other.gtpoint));
+    gt_inv(tmp1, tmp1);
+    memcpy(tmp2, gtpoint, sizeof(gtpoint));
+    gt_mul(res.gtpoint, tmp2, tmp1);
+    gt_free(tmp1); gt_free(tmp2);
+
+    return res;
+}
+
+GtElement GtElement::operator *(const Scalar& other) const
+{
+    GtElement res;
+    gt_t tmp;
+    gt_null(tmp);
+    gt_new(tmp);
+    memcpy(tmp, gtpoint, sizeof(gtpoint));
+    bn_t x;
+    bn_null(x);
+    bn_new(x);
+    string scalar_str = bigint(other).get_str();
+    int scalar_len = scalar_str.size();
+    bn_read_str(x, scalar_str.c_str(), scalar_len, 10);
+    gt_exp(res.gtpoint, tmp, x);
+    bn_free(x);
+    gt_free(tmp);
+
+    return res;
+}
 
 bool GtElement::operator ==(const GtElement& other) const
 {
@@ -137,23 +180,26 @@ bool GtElement::operator ==(const GtElement& other) const
     return 0;
 }
 
-// void GtElement::pack(octetStream& os) const
-// {
-//     octet* buffer;
-//     size_t length = EC_POINT_point2buf(curve, point,
-//             POINT_CONVERSION_COMPRESSED, &buffer, 0);
-//     assert(length != 0);
-//     os.store_int(length, 8);
-//     os.append(buffer, length);
-// }
+void GtElement::pack(octetStream& os) const
+{
+    gt_t tmp;
+    gt_null(tmp);
+    gt_new(tmp);
+    memcpy(tmp, gtpoint, sizeof(gtpoint));
+    int binsize = gt_size_bin(tmp, 0);
+    uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
+    gt_write_bin(gtoutstr, binsize, tmp, 0);
+    os.store_int(binsize, 8);
+    os.append(gtoutstr, binsize);
+    gt_free(tmp);
+    free(gtoutstr);
+}
 
-// void GtElement::unpack(octetStream& os)
-// {
-//     size_t length = os.get_int(8);
-//     assert(
-//             EC_POINT_oct2point(curve, point, os.consume(length), length, 0)
-//                     != 0);
-// }
+void GtElement::unpack(octetStream& os)
+{
+    size_t binsize = os.get_int(8);
+    gt_read_bin(gtpoint, os.consume(binsize), binsize);
+}
 
 ostream& operator <<(ostream& s, const GtElement& x)
 {
@@ -162,7 +208,6 @@ ostream& operator <<(ostream& s, const GtElement& x)
     gt_new(tmp);
     memcpy(tmp, x.gtpoint, sizeof(x.gtpoint));
     int binsize = gt_size_bin(tmp, 0);
-    gt_free(tmp);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
     gt_write_bin(gtoutstr, binsize, tmp, 0);
     for(int i=0; i<binsize; ++i){
@@ -198,16 +243,16 @@ GtElement::GtElement(const GtElement& other) :
     *this = other;
 }
 
-// GtElement operator*(const GtElement::Scalar& x, const GtElement& y)
-// {
-//     return y * x;
-// }
+GtElement operator*(const GtElement::Scalar& x, const GtElement& y)
+{
+    return y * x;
+}
 
-// GtElement& GtElement::operator +=(const GtElement& other)
-// {
-//     *this = *this + other;
-//     return *this;
-// }
+GtElement& GtElement::operator +=(const GtElement& other)
+{
+    *this = *this + other;
+    return *this;
+}
 
 // GtElement& GtElement::operator /=(const Scalar& other)
 // {
@@ -215,10 +260,10 @@ GtElement::GtElement(const GtElement& other) :
 //     return *this;
 // }
 
-// bool GtElement::operator !=(const GtElement& other) const
-// {
-//     return not (*this == other);
-// }
+bool GtElement::operator !=(const GtElement& other) const
+{
+    return not (*this == other);
+}
 
 // octetStream GtElement::hash(size_t n_bytes) const
 // {
@@ -230,17 +275,17 @@ GtElement::GtElement(const GtElement& other) :
 //     return res;
 // }
 
-// void GtElement::randomize(PRNG& G, int n)
-// {
-//     (void) n;
-//     GtElement::Scalar newscalar;
-//     newscalar.randomize(G, n);
-//     point = GtElement(newscalar).point;
-// }
+void GtElement::randomize(PRNG& G, int n)
+{
+    (void) n;
+    GtElement::Scalar newscalar;
+    newscalar.randomize(G, n);
+    gt_copy(gtpoint, GtElement(newscalar).gtpoint);
+}
 
-// void GtElement::input(istream& s,bool human)
-// { 
-//     GtElement::Scalar newscalar;
-//     newscalar.input(s,human); 
-//     point = GtElement(newscalar).point;
-// }
+void GtElement::input(istream& s,bool human)
+{ 
+    (void) s;
+    (void) human;
+    throw runtime_error("gt input not implemented");
+}

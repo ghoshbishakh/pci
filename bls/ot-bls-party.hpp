@@ -140,8 +140,11 @@ void run(int argc, const char** argv)
     BaseMachine machine;
     machine.ot_setups.push_back({P, true});
 
+
+
+
     cout << "Testing relic " << endl;
-     
+
     // Initialize curve and field
     // Initializes the field order to same as curve order 
     GtElement::init_relic();
@@ -152,6 +155,23 @@ void run(int argc, const char** argv)
     
     cout << GtElement::Scalar::pr() << endl;
     cout << GtElement::Scalar::next::pr() << endl;
+
+    // scalar processing units ====================
+    DataPositions usage(P.num_players());
+
+    typedef T<GtElement::Scalar> scalarShare;
+
+    typename scalarShare::mac_key_type mac_key;
+    scalarShare::read_or_generate_mac_key("", P, mac_key);
+
+    typename scalarShare::Direct_MC output(mac_key);
+
+    typename scalarShare::LivePrep preprocessing(0, usage);
+    
+    SubProcessor<scalarShare> processor(output, preprocessing, P);
+
+    typename scalarShare::Input input(output, preprocessing, P);
+    // =============================================
 
     SeededPRNG G;
     P256Element::Scalar sk;
@@ -182,8 +202,35 @@ void run(int argc, const char** argv)
 
 
 
+    MascotEcPrep<gtShare, scalarShare> gt_preprocessing(usage, preprocessing);
+    
+    typename gtShare::mac_key_type gt_mac_key;
+    gtShare::read_or_generate_mac_key("", P, gt_mac_key);
 
 
+    typename gtShare::Direct_MC gt_output(output.get_alphai());
+    
+
+    typename gtShare::Input gt_input(gt_output, gt_preprocessing, P);
+// 
+    // EcBeaver<gtShare, scalarShare> ecprotocol(P);
+    // ecprotocol.init(preprocessing, gt_output, output);
+
+    vector<gtShare> gt_inputs_shares[2];
+    gt_input.reset_all(P);
+    gt_input.add_from_all(gtval);
+    gt_input.exchange();
+    gt_inputs_shares[0].push_back(gt_input.finalize(0));
+    gt_inputs_shares[1].push_back(gt_input.finalize(1));
+
+    typename gtShare::clear gt_result;
+    gt_output.init_open(P);
+    gt_output.prepare_open(gt_inputs_shares[0][0]);
+    gt_output.exchange(P);
+    gt_result = gt_output.finalize_open();
+    cout << "-->" << gtval << endl;
+    cout << "-->" << gt_result << endl;
+    gt_output.Check(P);
 
     // if (core_init() != RLC_OK) {
 	// 	core_clean();
