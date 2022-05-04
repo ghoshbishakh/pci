@@ -29,12 +29,12 @@
 #include <assert.h>
 #include "bls/blsElement.h"
 
-// extern "C" {
-// #include <relic/relic_core.h>
-// #include <relic/relic_bn.h>
-// #include <relic/relic_pc.h>
-// #include <relic/relic_cp.h>
-// }
+extern "C" {
+#include <relic/relic_core.h>
+#include <relic/relic_bn.h>
+#include <relic/relic_pc.h>
+#include <relic/relic_cp.h>
+}
 
 class PCIInput
 {
@@ -68,6 +68,41 @@ void ecscalarmulshare(P256Element point, Share<P256Element::Scalar> multiplierSh
     result.set_share(point * multiplierShare.get_share());
     result.set_mac(point * multiplierShare.get_mac());
 }
+
+void pair_g1_p(Share<G1Element> g1shareip, Share<GtElement>& result){
+    gt_t res;
+    gt_null(res);
+    gt_new(res);
+
+    g2_t g2gen;
+    g2_null(g2gen);
+    g2_new(g2gen);
+
+    g1_t g1val, g1mac;
+    g1_null(g1val);
+    g1_null(g1mac);
+    g1_new(g1val);
+    g1_new(g1mac);
+    G1Element val = g1shareip.get_share();
+    G1Element mac = g1shareip.get_mac();
+    val.copypoint(g1val);
+    mac.copypoint(g1mac);
+    
+    g2_get_gen(g2gen);
+
+    pc_map(res, g1val, g2gen);
+    GtElement v(res, false);
+    result.set_share(v);
+
+    pc_map(res, g1mac, g2gen);
+    GtElement m(res, false);
+    result.set_mac(m);
+    gt_free(res);
+    g2_free(g2gen);
+    g1_free(g1val);
+    g1_free(g1mac);
+}
+
 
 template<template<class U> class T>
 void run(int argc, const char** argv)
@@ -143,7 +178,87 @@ void run(int argc, const char** argv)
 
 
 
-    cout << "Testing relic " << endl;
+    // cout << "Testing relic " << endl;
+
+    // if (core_init() != RLC_OK) {
+	// 	core_clean();
+	// 	return;
+	// }
+    // pc_param_set_any();
+
+    // cout << "-----------" << endl;
+    // bn_t g1_order, g2_order, gt_order;
+    // bn_null(g1_order);
+    // bn_null(g2_order);
+    // bn_null(gt_order);
+    // g1_get_ord(g1_order);
+    // g2_get_ord(g2_order);
+    // gt_get_ord(gt_order);
+    // bn_print(g1_order);
+    // bn_print(g2_order);
+    // bn_print(gt_order);
+    // cout << "-----------" << endl;
+
+
+	// bn_t sk1, sk2;
+    // g1_t sig1, sig2, sig;
+	// g2_t pk1, pk2, pk;
+	// uint8_t m[5] = { 0, 1, 2, 3, 4 };
+
+	// bn_null(sk1);
+	// bn_null(sk2);
+    // bn_new(sk1);
+    // bn_new(sk2);
+    // g1_new(sig1);
+    // g1_new(sig2);
+
+    // g2_null(pk1);
+    // g2_null(pk2);
+    // g2_null(pk);
+
+    // g2_new(pk1);
+    // g2_new(pk2);
+    // g2_new(pk);
+
+    // assert(cp_bls_gen(sk1, pk1) == RLC_OK);
+    // assert(cp_bls_gen(sk2, pk2) == RLC_OK);
+    // cout << "gen" << endl;
+    // assert(cp_bls_sig(sig1, m, sizeof(m), sk1) == RLC_OK);
+    // assert(cp_bls_sig(sig2, m, sizeof(m), sk2) == RLC_OK);
+    // cout << "sig" << endl;
+    // assert(cp_bls_ver(sig1, m, sizeof(m), pk1) == 1);
+    // assert(cp_bls_ver(sig2, m, sizeof(m), pk2) == 1);
+    // cout << "ver" << endl;
+
+    // g1_add(sig, sig1, sig2);
+    // g2_add(pk, pk1, pk2);
+    // assert(cp_bls_ver(sig, m, sizeof(m), pk) == 1);
+
+    // gt_t pres1, pres2;
+    // gt_null(pres1);
+    // gt_null(pres2);
+    // gt_new(pres1);
+    // gt_new(pres2);
+    // g2_t g2gen;
+    // g2_null(g2gen);
+    // g2_new(g2gen);
+    // g2_get_gen(g2gen);
+    // g1_t mg1;
+    // g1_null(mg1);
+    // g1_new(mg1);
+    // g1_map(mg1, m, sizeof(m));
+    // pc_map(pres1, sig, g2gen);
+    // pc_map(pres2, mg1, pk);
+    // gt_print(pres1);
+    // gt_print(pres2);
+    // gt_inv(pres2, pres2);
+    // gt_mul(pres1, pres1, pres2);
+    // gt_print(pres1);
+    // cout << "ver aggregate" << endl;
+    // return;
+
+
+
 
     // Initialize curve and field
     // Initializes the field order to same as curve order 
@@ -181,6 +296,7 @@ void run(int argc, const char** argv)
     G2Element g2val(sk);
     sk.randomize(G);
     GtElement gtval3(sk);
+    G2Element g2val2(sk);
 
     gtval.print_point();
     GtElement gtval2 = gtval;
@@ -291,101 +407,75 @@ void run(int argc, const char** argv)
     vector<g2Share> g2_inputs_shares[2];
     g2_input.reset_all(P);
     g2_input.add_from_all(g2val);
+    g2_input.add_from_all(g2val2);
     g2_input.exchange();
+    g2_inputs_shares[0].push_back(g2_input.finalize(0));
+    g2_inputs_shares[1].push_back(g2_input.finalize(1));
     g2_inputs_shares[0].push_back(g2_input.finalize(0));
     g2_inputs_shares[1].push_back(g2_input.finalize(1));
 
     typename g2Share::clear g2_result;
     g2_output.init_open(P);
     g2_output.prepare_open(g2_inputs_shares[0][0]);
+    g2_output.prepare_open(g2_inputs_shares[0][1]);
     g2_output.exchange(P);
     g2_result = g2_output.finalize_open();
     cout << "-->" << g2val << endl;
     cout << "-->" << g2_result << endl;
+    g2_result = g2_output.finalize_open();
+    cout << "-->" << g2val2 << endl;
+    cout << "-->" << g2_result << endl;
+
     g2_output.Check(P);
 
-// 
-    // EcBeaver<g1Share, scalarShare> ecprotocol(P);
+    cout << "----------------------------" << endl;
+
+
+    cout << "----------  TEST PAIR G1-P ------------------" << endl;
+    g2_t g2gen;
+    g2_null(g2gen);
+    g2_new(g2gen);
+    g2_get_gen(g2gen);
+
+    g1_t g1x;
+    g1_null(g1x);
+    g1_new(g1x);
+    g1val.copypoint(g1x);
+
+    gt_t gtres;
+    gt_null(gtres);
+    gt_new(gtres);
+    gt_get_gen(gtres);
+
+    pc_map(gtres, g1x, g2gen);
+
+
+    gt_print(gtres);
+    cout << "................."<< endl;
+
+    cout << GtElement(gtres, false) << endl;
+
+
+    g2_free(g2gen);
+    gt_free(gtres);
+    g1_free(g1x);
+    
+    g1Share aa = g1_inputs_shares[0][0];
+    gtShare bb;
+    pair_g1_p(aa, bb);
+
+    gt_output.init_open(P);
+    gt_output.prepare_open(bb);
+    gt_output.exchange(P);
+    gt_result = gt_output.finalize_open();
+    cout << "-->" << gt_result << endl;
+    gt_output.Check(P);
+    
+    
+    // EcBeaver<gtShare, scalarShare> ecprotocol(P);
     // ecprotocol.init(preprocessing, gt_output, output);
-    // ============================================
 
 
-    // if (core_init() != RLC_OK) {
-	// 	core_clean();
-	// 	return;
-	// }
-    // pc_param_set_any();
-
-    // cout << "-----------" << endl;
-    // bn_t g1_order, g2_order, gt_order;
-    // bn_null(g1_order);
-    // bn_null(g2_order);
-    // bn_null(gt_order);
-    // g1_get_ord(g1_order);
-    // g2_get_ord(g2_order);
-    // gt_get_ord(gt_order);
-    // bn_print(g1_order);
-    // bn_print(g2_order);
-    // bn_print(gt_order);
-    // cout << "-----------" << endl;
-
-
-	// bn_t sk1, sk2;
-    // g1_t sig1, sig2, sig;
-	// g2_t pk1, pk2, pk;
-	// uint8_t m[5] = { 0, 1, 2, 3, 4 };
-
-	// bn_null(sk1);
-	// bn_null(sk2);
-    // bn_new(sk1);
-    // bn_new(sk2);
-    // g1_new(sig1);
-    // g1_new(sig2);
-    // g2_new(pk1);
-    // g2_new(pk2);
-
-    // assert(cp_bls_gen(sk1, pk1) == RLC_OK);
-    // assert(cp_bls_gen(sk2, pk2) == RLC_OK);
-    // cout << "gen" << endl;
-    // assert(cp_bls_sig(sig1, m, sizeof(m), sk1) == RLC_OK);
-    // assert(cp_bls_sig(sig2, m, sizeof(m), sk2) == RLC_OK);
-    // cout << "sig" << endl;
-    // assert(cp_bls_ver(sig1, m, sizeof(m), pk1) == 1);
-    // assert(cp_bls_ver(sig2, m, sizeof(m), pk2) == 1);
-    // cout << "ver" << endl;
-
-    // g1_add(sig, sig1, sig2);
-    // g2_add(pk, pk1, pk2);
-    // assert(cp_bls_ver(sig, m, sizeof(m), pk) == 1);
-    // cout << "ver aggregate" << endl;
-
-    // // scalar multiplication
-	// bn_t skbn;
-    // bn_null(skbn);
-    // bn_new(skbn);
-    // SeededPRNG G;
-    // P256Element::Scalar sk;
-    // sk.randomize(G);
-    // string skstr = bigint(sk).get_str();
-    // cout << skstr << endl;
-    // cout << skstr.c_str() << endl;
-    // int sklen = skstr.size();
-    // cout << sklen << endl;
-    // cout << strlen(skstr.c_str()) << endl;
-    // bn_read_str(skbn, skstr.c_str(), sklen, 10);
-    // bn_print(skbn);
-    // cout << "===================" << endl;
-
-    // char * bnout = (char *)malloc(100 * sizeof(char));
-    // bn_write_str(bnout, 100, skbn, 10);
-    // printf("%s\n", bnout);
-
-    // cout << "===================" << endl;
-    // gt_t pairval;
-    // gt_new(pairval);
-    // gt_free(pairval);
-    // gt_mul(pairval, pairval, pairval);
-    // core_clean();
 
 
     // vector<PCIInput> pciinputs;

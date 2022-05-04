@@ -42,6 +42,7 @@ public:
     void print_point();
 
     GtElement();
+    GtElement(gt_t other, bool distinguisher);
     GtElement(const GtElement& other);
     GtElement(const Scalar& other);
     GtElement(word other);
@@ -111,6 +112,8 @@ public:
     G1Element(word other);
 
     G1Element& operator=(const G1Element& other);
+
+    void copypoint(g1_t dest);
 
     // void check();
 
@@ -210,5 +213,6 @@ public:
 };
 
 G2Element operator*(const G2Element::Scalar& x, const G2Element& y);
+
 
 #endif /* BLS_BLSELEMENT_H_ */

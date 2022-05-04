@@ -62,6 +62,14 @@ GtElement::GtElement(const Scalar& other) :
 }
 
 
+GtElement::GtElement(gt_t other, bool distinguisher) :
+        GtElement()
+{
+    (void) distinguisher;
+    gt_copy(gtpoint, other);
+}
+
+
 GtElement::GtElement(word other) :
         GtElement()
 {
@@ -543,6 +551,10 @@ void G1Element::input(istream& s,bool human)
     throw runtime_error("gt input not implemented");
 }
 
+void G1Element::copypoint(g1_t dest){
+    g1_copy(dest, g1point);
+}
+
 
 
 
@@ -803,5 +815,4 @@ void G2Element::input(istream& s,bool human)
     (void) human;
     throw runtime_error("gt input not implemented");
 }
-
 
