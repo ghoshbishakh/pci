@@ -186,9 +186,9 @@ void GtElement::pack(octetStream& os) const
     gt_null(tmp);
     gt_new(tmp);
     memcpy(tmp, gtpoint, sizeof(gtpoint));
-    int binsize = gt_size_bin(tmp, 0);
+    int binsize = gt_size_bin(tmp, 1);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    gt_write_bin(gtoutstr, binsize, tmp, 0);
+    gt_write_bin(gtoutstr, binsize, tmp, 1);
     os.store_int(binsize, 8);
     os.append(gtoutstr, binsize);
     gt_free(tmp);
@@ -207,9 +207,9 @@ ostream& operator <<(ostream& s, const GtElement& x)
     gt_null(tmp);
     gt_new(tmp);
     memcpy(tmp, x.gtpoint, sizeof(x.gtpoint));
-    int binsize = gt_size_bin(tmp, 0);
+    int binsize = gt_size_bin(tmp, 1);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    gt_write_bin(gtoutstr, binsize, tmp, 0);
+    gt_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
         s << hex << (int)gtoutstr[i];
     }
@@ -225,10 +225,10 @@ void GtElement::output(ostream& s,bool human) const
     gt_null(tmp);
     gt_new(tmp);
     memcpy(tmp, gtpoint, sizeof(gtpoint));
-    int binsize = gt_size_bin(tmp, 0);
+    int binsize = gt_size_bin(tmp, 1);
     gt_free(tmp);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    gt_write_bin(gtoutstr, binsize, tmp, 0);
+    gt_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
         s << hex << (int)gtoutstr[i];
     }
@@ -453,9 +453,9 @@ void G1Element::pack(octetStream& os) const
     g1_null(tmp);
     g1_new(tmp);
     memcpy(tmp, g1point, sizeof(g1point));
-    int binsize = g1_size_bin(tmp, 0);
+    int binsize = g1_size_bin(tmp, 1);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    g1_write_bin(gtoutstr, binsize, tmp, 0);
+    g1_write_bin(gtoutstr, binsize, tmp, 1);
     os.store_int(binsize, 8);
     os.append(gtoutstr, binsize);
     g1_free(tmp);
@@ -474,9 +474,9 @@ ostream& operator <<(ostream& s, const G1Element& x)
     g1_null(tmp);
     g1_new(tmp);
     memcpy(tmp, x.g1point, sizeof(x.g1point));
-    int binsize = g1_size_bin(tmp, 0);
+    int binsize = g1_size_bin(tmp, 1);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    g1_write_bin(gtoutstr, binsize, tmp, 0);
+    g1_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
         s << hex << (int)gtoutstr[i];
     }
@@ -492,10 +492,10 @@ void G1Element::output(ostream& s,bool human) const
     g1_null(tmp);
     g1_new(tmp);
     memcpy(tmp, g1point, sizeof(g1point));
-    int binsize = g1_size_bin(tmp, 0);
+    int binsize = g1_size_bin(tmp, 1);
     g1_free(tmp);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    g1_write_bin(gtoutstr, binsize, tmp, 0);
+    g1_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
         s << hex << (int)gtoutstr[i];
     }
@@ -763,9 +763,9 @@ void G2Element::pack(octetStream& os) const
     g2_null(tmp);
     g2_new(tmp);
     memcpy(tmp, g2point, sizeof(g2point));
-    int binsize = g2_size_bin(tmp, 0);
+    int binsize = g2_size_bin(tmp, 1);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    g2_write_bin(gtoutstr, binsize, tmp, 0);
+    g2_write_bin(gtoutstr, binsize, tmp, 1);
     os.store_int(binsize, 8);
     os.append(gtoutstr, binsize);
     g2_free(tmp);
@@ -784,9 +784,9 @@ ostream& operator <<(ostream& s, const G2Element& x)
     g2_null(tmp);
     g2_new(tmp);
     memcpy(tmp, x.g2point, sizeof(x.g2point));
-    int binsize = g2_size_bin(tmp, 0);
+    int binsize = g2_size_bin(tmp, 1);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    g2_write_bin(gtoutstr, binsize, tmp, 0);
+    g2_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
         s << hex << (int)gtoutstr[i];
     }
@@ -802,10 +802,10 @@ void G2Element::output(ostream& s,bool human) const
     g2_null(tmp);
     g2_new(tmp);
     memcpy(tmp, g2point, sizeof(g2point));
-    int binsize = g2_size_bin(tmp, 0);
+    int binsize = g2_size_bin(tmp, 1);
     g2_free(tmp);
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
-    g2_write_bin(gtoutstr, binsize, tmp, 0);
+    g2_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
         s << hex << (int)gtoutstr[i];
     }

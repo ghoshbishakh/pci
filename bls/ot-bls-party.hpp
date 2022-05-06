@@ -166,11 +166,11 @@ void run(int argc, const char** argv)
             "--no-macs" // Flag token.
     );
 
-    int INPUTSIZE = 4;
+    int INPUTSIZE = 100;
     int COMMON = 2;
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
-    OnlineOptions::singleton.batch_size = INPUTSIZE * INPUTSIZE * 10;
+    OnlineOptions::singleton.batch_size = INPUTSIZE * 10;
 
     // Setup network with two players
     Names N(opt, argc, argv, 2);
