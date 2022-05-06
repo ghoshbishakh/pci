@@ -331,6 +331,12 @@ G1Element::G1Element(const Scalar& other) :
     bn_free(x);
 }
 
+G1Element::G1Element(g1_t other, bool distinguisher) :
+        G1Element()
+{
+    (void) distinguisher;
+    g1_copy(g1point, other);
+}
 
 G1Element::G1Element(word other) :
         G1Element()
@@ -555,11 +561,56 @@ void G1Element::copypoint(g1_t dest){
     g1_copy(dest, g1point);
 }
 
+void G1Element::setpoint(g1_t src){
+    g1_copy(g1point, src);
+}
 
 
+G1Element G1Element::sign(uint8_t *msg, int len, G1Element::Scalar sk){
+    G1Element res;
+    bn_t x;
+    bn_null(x);
+    bn_new(x);
+    g1_t y;
+    g1_null(y);
+    g1_new(y);
+
+    string scalar_str = bigint(sk).get_str();
+    int scalar_len = scalar_str.size();
+    bn_read_str(x, scalar_str.c_str(), scalar_len, 10);
+
+    cp_bls_sig(y, msg, len, x);
+    res.setpoint(y);
+    
+    bn_free(x);
+    g1_free(y);
+
+    return res;
+};
 
 
+bool G1Element::ver(G1Element sig, uint8_t *msg, int len, G2Element pk){
+    g2_t y;
+    g2_null(y);
+    g2_new(y);
+    pk.copypoint(y);
 
+    g1_t s;
+    g1_null(s);
+    g1_new(s);
+    sig.copypoint(s);
+
+    if(cp_bls_ver(s, msg, len, y)){
+        g2_free(y);
+        g1_free(s);
+
+        return true;
+    }
+    g2_free(y);
+    g1_free(s);
+
+    return false;
+};
 
 
 // ==============================================
@@ -815,4 +866,54 @@ void G2Element::input(istream& s,bool human)
     (void) human;
     throw runtime_error("gt input not implemented");
 }
+
+void G2Element::copypoint(g2_t dest){
+    g2_copy(dest, g2point);
+}
+
+
+// ================================================
+
+
+
+GtElement pair_g1_g2(G1Element g1ip, G2Element g2ip) {
+    gt_t res;
+    gt_null(res);
+    gt_new(res);
+
+    g2_t g2val;
+    g2_null(g2val);
+    g2_new(g2val);
+
+    g1_t g1val;
+    g1_null(g1val);
+    g1_new(g1val);
+
+    g1ip.copypoint(g1val);
+    g2ip.copypoint(g2val);
+
+    pc_map(res, g1val, g2val);
+    GtElement pair_result(res, false);
+
+    g2_free(g2val);
+    g1_free(g1val);
+    gt_free(res);
+
+    return pair_result;
+};
+
+
+G1Element msg_to_g1(uint8_t *msg, int len){
+    g1_t g1val;
+    g1_null(g1val);
+    g1_new(g1val);
+    g1_map(g1val, msg, len);
+
+    G1Element res(g1val, false);
+
+    g1_free(g1val);
+    return res;
+}
+
+
 

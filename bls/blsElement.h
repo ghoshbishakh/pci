@@ -15,6 +15,9 @@ extern "C" {
 }
 
 
+class G2Element;
+class G1Element;
+class GtElement;
 
 class GtElement : public ValueInterface
 {
@@ -109,11 +112,13 @@ public:
     G1Element();
     G1Element(const G1Element& other);
     G1Element(const Scalar& other);
+    G1Element(g1_t other, bool distinguisher);
     G1Element(word other);
 
     G1Element& operator=(const G1Element& other);
 
     void copypoint(g1_t dest);
+    void setpoint(g1_t dest);
 
     // void check();
 
@@ -145,6 +150,8 @@ public:
     friend ostream& operator<<(ostream& s, const G1Element& x);
     void output(ostream& s,bool human) const;
 
+    static G1Element sign(uint8_t *msg, int len, G1Element::Scalar sk);
+    static bool ver(G1Element sig, uint8_t *msg, int len, G2Element pk);
 };
 
 G1Element operator*(const G1Element::Scalar& x, const G1Element& y);
@@ -180,6 +187,8 @@ public:
 
     G2Element& operator=(const G2Element& other);
 
+    void copypoint(g2_t dest);
+
     // void check();
 
     // Scalar x() const;
@@ -214,5 +223,9 @@ public:
 
 G2Element operator*(const G2Element::Scalar& x, const G2Element& y);
 
+
+GtElement pair_g1_g2(G1Element g1ip, G2Element g2ip);
+
+G1Element msg_to_g1(uint8_t *msg, int len);
 
 #endif /* BLS_BLSELEMENT_H_ */
