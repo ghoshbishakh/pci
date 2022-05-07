@@ -212,8 +212,10 @@ void run(int argc, const char** argv)
     vector<PCIBLSInput> generatedinputsA;
     vector<PCIBLSInput> generatedinputsB;
     ClearInput<PCIBLSInput> clearInput(P);
-    uint8_t message[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; // claim of p1
-    uint8_t message2[10] = { 10, 12, 7, 3, 4, 5, 16, 7, 8, 9}; // claim of p2
+    uint8_t message11[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; // claim of p1
+    uint8_t message12[10] = { 0, 1, 2, 23, 4, 5, 6, 7, 18, 19}; // claim of p1
+    uint8_t message21[10] = { 10, 12, 7, 3, 4, 5, 16, 7, 8, 9}; // claim of p2
+    uint8_t message22[10] = { 10, 12, 7, 43, 4, 55, 16, 17, 8, 9}; // claim of p2
 
     SeededPRNG G;
     if (P.my_num() == 0){
@@ -221,7 +223,7 @@ void run(int argc, const char** argv)
         cout << "generating random keys and signatures" << endl;
         G1Element::Scalar sk;
 
-        
+        G1Element signature1, signature2;
         for (int i = 0; i < TOTAL_GENERATED_INPUTS; i++)
         {
             // chose random sk
@@ -230,14 +232,21 @@ void run(int argc, const char** argv)
             G2Element Pk(sk);
 
             // sign1
-            G1Element signature = G1Element::sign(message, sizeof(message), sk);
-            assert(G1Element::ver(signature, message, sizeof(message), Pk) == true);
-            generatedinputsA.push_back({Pk, signature});
+            signature1 = G1Element::sign(message11, sizeof(message11), sk);
+            assert(G1Element::ver(signature1, message11, sizeof(message11), Pk) == true);
+            signature2 = G1Element::sign(message12, sizeof(message12), sk);
+            assert(G1Element::ver(signature2, message12, sizeof(message12), Pk) == true);
+            signature1 = signature1 + signature2;
+            generatedinputsA.push_back({Pk, signature1});
 
-            // sign2            
-            G1Element signature2 = G1Element::sign(message2, sizeof(message2), sk);
-            assert(G1Element::ver(signature2, message2, sizeof(message2), Pk) == true);
-            generatedinputsB.push_back({Pk, signature2});
+            // sign2
+            signature1 = G1Element::sign(message21, sizeof(message21), sk);
+            assert(G1Element::ver(signature1, message21, sizeof(message21), Pk) == true);
+            signature2 = G1Element::sign(message22, sizeof(message22), sk);
+            assert(G1Element::ver(signature2, message22, sizeof(message22), Pk) == true);
+            signature1 = signature1 + signature2;
+            generatedinputsB.push_back({Pk, signature1});
+
         }
 
 
@@ -277,13 +286,29 @@ void run(int argc, const char** argv)
 
     if (P.my_num() == 0){
         for (int i = 0; i < INPUTSIZE; i++){
-            E_set.push_back(pair_g1_g2(msg_to_g1(message, sizeof(message)), pciinputs[i].Pk));
-            E_set_.push_back(pair_g1_g2(msg_to_g1(message2, sizeof(message2)), pciinputs[i].Pk));
+            E_set.push_back(
+                pair_g1_g2(
+                    msg_to_g1(message11, sizeof(message11)) + msg_to_g1(message12, sizeof(message12)),
+                    pciinputs[i].Pk
+                    ));
+            E_set_.push_back(
+                pair_g1_g2(
+                    msg_to_g1(message21, sizeof(message21)) + msg_to_g1(message22, sizeof(message22)),
+                    pciinputs[i].Pk
+                    ));
         }
     } else if (P.my_num() == 1){
         for (int i = 0; i < INPUTSIZE; i++){
-            E_set.push_back(pair_g1_g2(msg_to_g1(message2, sizeof(message2)), pciinputs[i].Pk));
-            E_set_.push_back(pair_g1_g2(msg_to_g1(message, sizeof(message)), pciinputs[i].Pk));
+            E_set.push_back(
+                pair_g1_g2(
+                    msg_to_g1(message21, sizeof(message21)) + msg_to_g1(message22, sizeof(message22)),
+                    pciinputs[i].Pk
+                    ));
+            E_set_.push_back(
+                pair_g1_g2(
+                    msg_to_g1(message11, sizeof(message11)) + msg_to_g1(message12, sizeof(message12)),
+                    pciinputs[i].Pk
+                    ));
         }
     }
 
