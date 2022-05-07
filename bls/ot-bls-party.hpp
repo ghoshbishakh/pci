@@ -106,6 +106,20 @@ Share<GtElement> pair_g1share_p(Share<G1Element> g1shareip){
 }
 
 
+Share<GtElement> exp_gt_scalar(Share<GtElement> gtshareip, GtElement::Scalar multiplier){
+    Share<GtElement> result;
+
+    GtElement val = gtshareip.get_share();
+    GtElement mac = gtshareip.get_mac();
+
+    result.set_share(val * multiplier);
+    result.set_mac(mac * multiplier);
+
+    return result;
+}
+
+
+
 template<template<class U> class T>
 void run(int argc, const char** argv)
 {
@@ -412,22 +426,62 @@ void run(int argc, const char** argv)
     vector<gtShare> c4;
 
     cout << "---- main loop ----" << N.my_num() << endl;
-    for (int i = 0; i < INPUTSIZE; i++)
-    {
+
+    cout << "------  generate randoms ------" << endl;
+    vector<scalarShare> to_open_rands;
+    GtElement::Scalar open_rands[3];
+    vector<scalarShare> myrandomshares;
+    scalarShare __;
+
+    for (int i = 0; i < 3; i++){
+            to_open_rands.push_back({});
+            preprocessing.get_two(DATA_INVERSE, to_open_rands.back(), __);
+    }
+    // open the shares
+    cout << "------  opening 3 randoms ------" << endl;
+    output.init_open(P);
+    for (int i = 0; i < 3; i++){
+        output.prepare_open(to_open_rands[i]);
+    }
+    output.exchange(P);
+    for (int i = 0; i < 3; i++){
+        open_rands[i] = output.finalize_open();
+    }
+    output.Check(P);
+
+    cout << "------  generate " << (INPUTSIZE * INPUTSIZE) << " randoms ------" << endl;
+
+    for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            c3.push_back((E_share[0][i] - E_share_[1][j]) + (E_share[1][j] - E_share_[0][i]));
+            typename scalarShare::clear tmp;
+            myrandomshares.push_back({});
+            preprocessing.get_two(DATA_INVERSE, myrandomshares.back(), __);
+            // cout << "generating rand " << (INPUTSIZE*i + j) << endl;
+            // ecprotocol.prepare_scalar_mul(myrandomshares.back(), c_final[INPUTSIZE*i + j]);;
         }
     }
+    cout << "-- done --" << endl;
+    cout << "-- computing c3 --" << endl;
+
     for (int i = 0; i < INPUTSIZE; i++)
     {
         for (int j = 0; j < INPUTSIZE; j++){
-            c4.push_back(c3[(INPUTSIZE*i) + j] + c1[i] + c2[j]);
+            c3.push_back((E_share[0][i] - E_share_[1][j]) + exp_gt_scalar((E_share[1][j] - E_share_[0][i]), open_rands[0]));
+        }
+    }
+    cout << "-- computing c4 --" << endl;
+
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        for (int j = 0; j < INPUTSIZE; j++){
+            c4.push_back(c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]));
         }
     }
 
 
 
     // Test
+    cout << "-- opening c4s --" << endl;
     typename gtShare::clear gt_result;
     typename g2Share::clear g2_result;
     GtElement gtunity;
@@ -439,6 +493,7 @@ void run(int argc, const char** argv)
         }
     }
     gt_output.exchange(P);
+    cout << "-- exchanging c4s complete --" << endl;
 
     g2_output.init_open(P);
     int outputlen = 0;
@@ -455,6 +510,8 @@ void run(int argc, const char** argv)
             }
         }
     }
+    cout << "-- maccheck 1 --" << endl;
+
     gt_output.Check(P);
 
     cout << "------------- output ---------------" <<endl;
@@ -464,7 +521,11 @@ void run(int argc, const char** argv)
         g2_result = g2_output.finalize_open();
         cout << g2_result << endl;
     }
+    cout << "-- maccheck 2 --" << endl;
+
     g2_output.Check(P);
+    cout << "-- end --" << endl;
+
     
 
     

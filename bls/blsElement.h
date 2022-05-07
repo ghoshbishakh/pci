@@ -228,4 +228,6 @@ GtElement pair_g1_g2(G1Element g1ip, G2Element g2ip);
 
 G1Element msg_to_g1(uint8_t *msg, int len);
 
+
+
 #endif /* BLS_BLSELEMENT_H_ */

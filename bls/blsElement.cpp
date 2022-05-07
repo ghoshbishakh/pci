@@ -211,7 +211,7 @@ ostream& operator <<(ostream& s, const GtElement& x)
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
     gt_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
-        s << hex << (int)gtoutstr[i];
+        s << hex << (int)gtoutstr[i] << dec;
     }
     gt_free(tmp);
     free(gtoutstr);
@@ -230,7 +230,7 @@ void GtElement::output(ostream& s,bool human) const
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
     gt_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
-        s << hex << (int)gtoutstr[i];
+        s << hex << (int)gtoutstr[i] << dec;
     }
     gt_free(tmp);
     free(gtoutstr);
@@ -478,7 +478,7 @@ ostream& operator <<(ostream& s, const G1Element& x)
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
     g1_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
-        s << hex << (int)gtoutstr[i];
+        s << hex << (int)gtoutstr[i] << dec;
     }
     g1_free(tmp);
     free(gtoutstr);
@@ -497,7 +497,7 @@ void G1Element::output(ostream& s,bool human) const
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
     g1_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
-        s << hex << (int)gtoutstr[i];
+        s << hex << (int)gtoutstr[i] << dec;
     }
     g1_free(tmp);
     free(gtoutstr);
@@ -788,7 +788,7 @@ ostream& operator <<(ostream& s, const G2Element& x)
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
     g2_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
-        s << hex << (int)gtoutstr[i];
+        s << hex << (int)gtoutstr[i] << dec;
     }
     g2_free(tmp);
     free(gtoutstr);
@@ -807,7 +807,7 @@ void G2Element::output(ostream& s,bool human) const
     uint8_t * gtoutstr = (uint8_t *)malloc(binsize * sizeof(uint8_t));
     g2_write_bin(gtoutstr, binsize, tmp, 1);
     for(int i=0; i<binsize; ++i){
-        s << hex << (int)gtoutstr[i];
+        s << hex << (int)gtoutstr[i] << dec;
     }
     g2_free(tmp);
     free(gtoutstr);
@@ -914,7 +914,6 @@ G1Element msg_to_g1(uint8_t *msg, int len){
     g1_free(g1val);
     return res;
 }
-
 
 
 
