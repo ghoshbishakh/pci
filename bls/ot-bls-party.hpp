@@ -180,7 +180,7 @@ void run(int argc, const char** argv)
             "--no-macs" // Flag token.
     );
 
-    int INPUTSIZE = 100;
+    int INPUTSIZE = 10;
     int COMMON = 2;
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
@@ -358,6 +358,9 @@ void run(int argc, const char** argv)
     
 
     typename gtShare::Input gt_input(gt_output, gt_preprocessing, P);
+
+    EcBeaver<gtShare, scalarShare> gtprotocol(P);
+    gtprotocol.init(preprocessing, gt_output, output);
     // =============================================
 
 
@@ -424,6 +427,7 @@ void run(int argc, const char** argv)
 
     vector<gtShare> c3;
     vector<gtShare> c4;
+    vector<gtShare> c4_rand;
 
     cout << "---- main loop ----" << N.my_num() << endl;
 
@@ -478,10 +482,23 @@ void run(int argc, const char** argv)
         }
     }
 
-
+    cout << "-- private random * c4s --" << endl;
+    gtprotocol.init_mul();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        for (int j = 0; j < INPUTSIZE; j++){
+            gtprotocol.prepare_scalar_mul(myrandomshares[(INPUTSIZE*i) + j], c4[(INPUTSIZE*i) + j]);
+        }
+    }
+    gtprotocol.exchange();
+    for (int i = 0; i < INPUTSIZE; i++){
+        for (int j = 0; j < INPUTSIZE; j++){
+            c4_rand.push_back(gtprotocol.finalize_mul());
+        }
+    }
 
     // Test
-    cout << "-- opening c4s --" << endl;
+    cout << "-- opening c4_rand --" << endl;
     typename gtShare::clear gt_result;
     typename g2Share::clear g2_result;
     GtElement gtunity;
@@ -489,11 +506,11 @@ void run(int argc, const char** argv)
     for (int i = 0; i < INPUTSIZE; i++)
     {
         for (int j = 0; j < INPUTSIZE; j++){
-            gt_output.prepare_open(c3[(INPUTSIZE*i) + j]);
+            gt_output.prepare_open(c4_rand[(INPUTSIZE*i) + j]);
         }
     }
     gt_output.exchange(P);
-    cout << "-- exchanging c4s complete --" << endl;
+    cout << "-- exchanging c4_rand complete --" << endl;
 
     g2_output.init_open(P);
     int outputlen = 0;
