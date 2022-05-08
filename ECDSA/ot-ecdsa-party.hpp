@@ -473,16 +473,17 @@ void run(int argc, const char** argv)
         }
     }
     ecprotocol.exchange();
-    ec_output.init_open(P);
-    for (int i = 0; i < INPUTSIZE; i++){
-        for (int j = 0; j < INPUTSIZE; j++){
-            c_final_randomized.push_back(ecprotocol.finalize_mul());
-            ec_output.prepare_open(c_final_randomized.back());
-        }
-    }
+    ecprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c_final_randomized);
+
     auto tcrand = timer.elapsed();
     cout << ">>>> Computing C' * rand," << (tcrand - tc2) * 1e3 << ", ms" << endl;
 
+    ec_output.init_open(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        for (int j = 0; j < INPUTSIZE; j++){
+            ec_output.prepare_open(c_final_randomized[i*INPUTSIZE + j]);
+        }
+    }
 
     vector<typename ecShare::clear> condition_result[INPUTSIZE];
     ec_output.exchange(P);

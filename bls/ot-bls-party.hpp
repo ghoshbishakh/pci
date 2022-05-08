@@ -582,11 +582,7 @@ void run(int argc, const char** argv)
         }
     }
     gtprotocol.exchange();
-    for (int i = 0; i < INPUTSIZE; i++){
-        for (int j = 0; j < INPUTSIZE; j++){
-            c4_rand.push_back(gtprotocol.finalize_mul());
-        }
-    }
+    gtprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c4_rand);
 
     auto tc4_rand = timer.elapsed();
     cout << ">>>> C4 * private rand computation," << (tc4_rand - tc4) * 1e3 << ", ms" << endl;

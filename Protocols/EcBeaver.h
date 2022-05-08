@@ -12,6 +12,7 @@ using namespace std;
 
 #include "Replicated.h"
 #include "Processor/Data_Files.h"
+#include "../bls/thread_pool.hpp"
 
 
 /**
@@ -53,6 +54,7 @@ public:
     void prepare_scalar_mul(const V& x, const T& Y, int n = -1);
     void exchange();
     T finalize_mul(int n = -1);
+    void finalize_mul(int count, thread_pool &pool, vector<T>& resvec);
 
     void check();
 

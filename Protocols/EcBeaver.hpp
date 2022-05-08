@@ -132,6 +132,43 @@ T EcBeaver<T, V>::finalize_mul(int n)
     return C;
 }
 
+// PARALLEL FINALIZE MUL
+template<class T, class V>
+void EcBeaver<T, V>::finalize_mul(int count, thread_pool &pool, vector<T>& resvec)
+{
+    resvec.resize(count);
+    auto mynum_ = P.my_num();
+    for (int i = 0; i < count; i++)
+    {
+        typename V::open_type maskedScalar; // epsilon
+        typename T::open_type maskedEc; // D
+
+        V& a = (*triple)[0];
+        T C = (*triple)[2];
+        T B = (*triple)[1];
+        maskedScalar = *itScalar;
+        maskedEc = *itEc;
+        auto alphai = MCec->get_alphai();
+
+        pool.push_task([&resvec, i, maskedScalar, B, C, a, maskedEc, mynum_, alphai]{
+            T tmpres = C;
+            T tmpec = {};
+            ecscalarmulshare(maskedScalar, B, tmpec);
+            tmpres += tmpec;
+            ecscalarmulshare(a, maskedEc, tmpec);
+            tmpres += tmpec;
+            tmpres += T::constant(maskedEc * maskedScalar, mynum_, alphai);
+            resvec[i] = tmpres;
+        });
+
+        triple++;
+        itScalar++;
+        itEc++;
+    }
+
+    pool.wait_for_tasks();
+}
+
 template<class T, class V>
 void EcBeaver<T, V>::check()
 {
