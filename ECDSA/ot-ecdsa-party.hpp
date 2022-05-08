@@ -439,10 +439,17 @@ void run(int argc, const char** argv)
 
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            pool.push_task([&c_final, Pk_share, c_valid, open_rands, i,j, INPUTSIZE]{
-            c_final[i*INPUTSIZE + j]  = ((Pk_share[0][i] - Pk_share[1][j]) + 
-            mul_ec_scalar(c_valid[0][i], open_rands[0]) + 
-            mul_ec_scalar(c_valid[1][j], open_rands[1]));
+            P256Element::Scalar or0 = open_rands[0];
+            P256Element::Scalar or1 = open_rands[1];
+            ecShare c_valid0i = c_valid[0][i];
+            ecShare c_valid1j = c_valid[1][j];
+            ecShare Pk_share0i = Pk_share[0][i];
+            ecShare Pk_share1j = Pk_share[1][j];
+
+            pool.push_task([&c_final, or0, or1, c_valid0i, c_valid1j, Pk_share0i, Pk_share1j, i,j, INPUTSIZE]{
+            c_final[i*INPUTSIZE + j]  = ((Pk_share0i - Pk_share1j) + 
+            mul_ec_scalar(c_valid0i, or1) + 
+            mul_ec_scalar(c_valid1j, or1));
             });
 
             // c_final[i*INPUTSIZE + j]  = ((Pk_share[0][i] - Pk_share[1][j]) + 
