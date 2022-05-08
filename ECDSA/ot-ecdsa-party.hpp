@@ -24,6 +24,9 @@
 #include "GC/VectorProtocol.hpp"
 #include "GC/CcdPrep.hpp"
 
+#include "../bls/thread_pool.hpp"
+
+
 #include <assert.h>
 
 class PCIInput
@@ -155,6 +158,7 @@ void run(int argc, const char** argv)
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
 
     OnlineOptions::singleton.batch_size = 10 * INPUTSIZE;
+    thread_pool pool;
 
 
     // Setup network with two players
@@ -431,12 +435,23 @@ void run(int argc, const char** argv)
     auto tc = timer.elapsed();
     cout << ">>>> Computing C1 C2," << (tc - trands) * 1e3 << ", ms" << endl;
 
+    c_final.resize(INPUTSIZE*INPUTSIZE);
 
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            c_final.push_back((Pk_share[0][i] - Pk_share[1][j]) + mul_ec_scalar(c_valid[0][i], open_rands[0]) + mul_ec_scalar(c_valid[1][j], open_rands[1]));
+            pool.push_task([&c_final, Pk_share, c_valid, open_rands, i,j, INPUTSIZE]{
+            c_final[i*INPUTSIZE + j]  = ((Pk_share[0][i] - Pk_share[1][j]) + 
+            mul_ec_scalar(c_valid[0][i], open_rands[0]) + 
+            mul_ec_scalar(c_valid[1][j], open_rands[1]));
+            });
+
+            // c_final[i*INPUTSIZE + j]  = ((Pk_share[0][i] - Pk_share[1][j]) + 
+            // mul_ec_scalar(c_valid[0][i], open_rands[0]) + 
+            // mul_ec_scalar(c_valid[1][j], open_rands[1]));
         }
     }
+    pool.wait_for_tasks();
+
 
     auto tc2 = timer.elapsed();
     cout << ">>>> Computing C'," << (tc2 - tc) * 1e3 << " ms" << endl;
