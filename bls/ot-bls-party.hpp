@@ -29,6 +29,9 @@
 #include <assert.h>
 #include "bls/blsElement.h"
 
+#include "thread_pool.hpp"
+
+
 extern "C" {
 #include <relic/relic_core.h>
 #include <relic/relic_bn.h>
@@ -120,6 +123,7 @@ Share<GtElement> exp_gt_scalar(Share<GtElement> gtshareip, GtElement::Scalar mul
 
 
 
+
 template<template<class U> class T>
 void run(int argc, const char** argv)
 {
@@ -198,6 +202,7 @@ void run(int argc, const char** argv)
     }
     cout << ">>>> Input size (each party)," << INPUTSIZE << "," << endl;
     
+    thread_pool pool;
 
     int COMMON = 2;
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
@@ -481,7 +486,7 @@ void run(int argc, const char** argv)
 
     cout << "------  generate randoms ------" << endl;
     vector<scalarShare> to_open_rands;
-    GtElement::Scalar open_rands[3];
+    vector<GtElement::Scalar> open_rands;
     vector<scalarShare> myrandomshares;
     scalarShare __;
 
@@ -497,7 +502,7 @@ void run(int argc, const char** argv)
     }
     output.exchange(P);
     for (int i = 0; i < 3; i++){
-        open_rands[i] = output.finalize_open();
+        open_rands.push_back(output.finalize_open());
     }
     output.Check(P);
 
@@ -522,25 +527,34 @@ void run(int argc, const char** argv)
     cout << ">>>> Generate INPUT**2 private rands," << (tprand - topen3rand) * 1e3 << ", ms" << endl;
 
     cout << "-- computing c3 --" << endl;
-
+    c3.resize(INPUTSIZE*INPUTSIZE);
     for (int i = 0; i < INPUTSIZE; i++)
     {
         for (int j = 0; j < INPUTSIZE; j++){
-            c3.push_back((E_share[0][i] - E_share_[1][j]) + exp_gt_scalar((E_share[1][j] - E_share_[0][i]), open_rands[0]));
+            pool.push_task([&c3, E_share, E_share_, open_rands, i,j, INPUTSIZE]{
+                c3[i*INPUTSIZE + j] = (E_share[0][i] - E_share_[1][j]) + exp_gt_scalar((E_share[1][j] - E_share_[0][i]), open_rands[0]);
+                });
         }
     }
+    pool.wait_for_tasks();
 
     auto tc3 = timer.elapsed();
     cout << ">>>> C3 computation," << (tc3 - tprand) * 1e3 << ", ms" << endl;
 
     cout << "-- computing c4 --" << endl;
-
+    c4.resize(INPUTSIZE*INPUTSIZE);
     for (int i = 0; i < INPUTSIZE; i++)
     {
         for (int j = 0; j < INPUTSIZE; j++){
-            c4.push_back(c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]));
+            // pool.push_task([c1, c2, c3, &c4, open_rands, i,j, INPUTSIZE]{
+            //     c4[(INPUTSIZE*i) + j] = c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]);
+            //     });
+                c4[(INPUTSIZE*i) + j] = c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]);
+
         }
     }
+    // pool.wait_for_tasks();
+
 
     auto tc4 = timer.elapsed();
     cout << ">>>> C4 computation," << (tc4 - tc3) * 1e3 << ", ms" << endl;
