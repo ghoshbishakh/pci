@@ -301,7 +301,7 @@ void run(int argc, const char** argv)
     vector<GtElement> E_set;
     vector<GtElement> E_set_;
     G1Element m1combined = msg_to_g1(message11, sizeof(message11)) + msg_to_g1(message12, sizeof(message12));
-    G1Element m2combined = msg_to_g1(message11, sizeof(message21)) + msg_to_g1(message12, sizeof(message22));
+    G1Element m2combined = msg_to_g1(message21, sizeof(message21)) + msg_to_g1(message22, sizeof(message22));
 
     if (P.my_num() == 0){
         for (int i = 0; i < INPUTSIZE; i++){
