@@ -300,18 +300,19 @@ void run(int argc, const char** argv)
     // Parties compute E and E' sets
     vector<GtElement> E_set;
     vector<GtElement> E_set_;
-
+    G1Element m1combined = msg_to_g1(message11, sizeof(message11)) + msg_to_g1(message12, sizeof(message12));
+    G1Element m2combined = msg_to_g1(message11, sizeof(message21)) + msg_to_g1(message12, sizeof(message22));
 
     if (P.my_num() == 0){
         for (int i = 0; i < INPUTSIZE; i++){
             E_set.push_back(
                 pair_g1_g2(
-                    msg_to_g1(message11, sizeof(message11)) + msg_to_g1(message12, sizeof(message12)),
+                    m1combined,
                     pciinputs[i].Pk
                     ));
             E_set_.push_back(
                 pair_g1_g2(
-                    msg_to_g1(message21, sizeof(message21)) + msg_to_g1(message22, sizeof(message22)),
+                    m2combined,
                     pciinputs[i].Pk
                     ));
         }
@@ -319,12 +320,12 @@ void run(int argc, const char** argv)
         for (int i = 0; i < INPUTSIZE; i++){
             E_set.push_back(
                 pair_g1_g2(
-                    msg_to_g1(message21, sizeof(message21)) + msg_to_g1(message22, sizeof(message22)),
+                    m2combined,
                     pciinputs[i].Pk
                     ));
             E_set_.push_back(
                 pair_g1_g2(
-                    msg_to_g1(message11, sizeof(message11)) + msg_to_g1(message12, sizeof(message12)),
+                    m1combined,
                     pciinputs[i].Pk
                     ));
         }
