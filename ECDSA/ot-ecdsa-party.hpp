@@ -59,6 +59,18 @@ void ecscalarmulshare(P256Element point, Share<P256Element::Scalar> multiplierSh
     result.set_mac(point * multiplierShare.get_mac());
 }
 
+Share<P256Element> mul_ec_scalar(Share<P256Element> ecshareip, P256Element::Scalar multiplier){
+    Share<P256Element> result;
+
+    P256Element val = ecshareip.get_share();
+    P256Element mac = ecshareip.get_mac();
+
+    result.set_share(val * multiplier);
+    result.set_mac(mac * multiplier);
+
+    return result;
+}
+
 template<template<class U> class T>
 void run(int argc, const char** argv)
 {
@@ -118,8 +130,26 @@ void run(int argc, const char** argv)
             "-M", // Flag token.
             "--no-macs" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            1, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Input Size", // Help description.
+            "-I", // Flag token.
+            "--inputs" // Flag token.
+    );
+    opt.parse(argc, argv);
+    int INPUTSIZE = 10;
+    if (opt.get("-I")->isSet){
+        opt.get("-I")->getInt(INPUTSIZE);
+    }
+    else {
+        cout << "default input size 10" << endl;
+    }
+    cout << ">>>> Input size (each party)," << INPUTSIZE << "," << endl;
+    
 
-    int INPUTSIZE = 100;
     int COMMON = 2;
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
@@ -301,7 +331,7 @@ void run(int argc, const char** argv)
     cout << "---- ec inputs shared ----" << thisplayer << endl;
 
     auto tinput = timer.elapsed();
-    cout << "Input sharing took " << tinput * 1e3 << " ms" << endl;
+    cout << ">>>> Input sharing," << tinput * 1e3 << ", ms" << endl;
 
 
     cout << " -------- compute ua1 ub1-----------" << endl;
@@ -333,10 +363,53 @@ void run(int argc, const char** argv)
     }
 
     auto tu = timer.elapsed();
-    cout << "Computing u1 u2 took " << (tu - tinput) * 1e3 << " ms" << endl;
+    cout << ">>>> Compute u1 and u2," << (tu - tinput) * 1e3 << ", ms" << endl;
 
 
     cout << " -------- Main loop -----------" << endl;
+
+
+    cout << "------  generate randoms ------" << endl;
+    vector<scalarShare> to_open_rands;
+    P256Element::Scalar open_rands[2];
+    vector<scalarShare> myrandomshares;
+    scalarShare __;
+
+    for (int i = 0; i < 2; i++){
+            to_open_rands.push_back({});
+            preprocessing.get_two(DATA_INVERSE, to_open_rands.back(), __);
+    }
+    // open the shares
+    cout << "------  opening 2 randoms ------" << endl;
+    output.init_open(P);
+    for (int i = 0; i < 2; i++){
+        output.prepare_open(to_open_rands[i]);
+    }
+    output.exchange(P);
+    for (int i = 0; i < 2; i++){
+        open_rands[i] = output.finalize_open();
+    }
+    output.Check(P);
+
+    auto topen3rand = timer.elapsed();
+    cout << ">>>> Open 2 rands," << (topen3rand - tu) * 1e3 << ", ms" << endl;
+
+
+    cout << "------  generate " << (INPUTSIZE * INPUTSIZE) << " randoms ------" << endl;
+
+    for (int i = 0; i < INPUTSIZE; i++){
+        for (int j = 0; j < INPUTSIZE; j++){
+            typename scalarShare::clear tmp;
+            myrandomshares.push_back({});
+            preprocessing.get_two(DATA_INVERSE, myrandomshares.back(), __);
+        }
+    }
+    auto trands = timer.elapsed();
+    cout << ">>>> Generate input times rands," << (trands - topen3rand) * 1e3 << ", ms" << endl;
+
+    cout << "-- done --" << endl;
+
+
     vector<ecShare> c_valid[2], c_right[2], c_final, c_final_randomized;
     ecprotocol.init_mul();
     for (int i = 0; i < INPUTSIZE; i++){
@@ -355,31 +428,28 @@ void run(int argc, const char** argv)
         c_valid[1].push_back(c_right[1][i] + u1_share[1][i] - R_share[1][i]);
     }
 
+    auto tc = timer.elapsed();
+    cout << ">>>> Computing C1 C2," << (tc - trands) * 1e3 << ", ms" << endl;
+
+
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            c_final.push_back(c_valid[0][i] + c_valid[1][j] + (Pk_share[0][i] - Pk_share[1][j]));
+            c_final.push_back((Pk_share[0][i] - Pk_share[1][j]) + mul_ec_scalar(c_valid[0][i], open_rands[0]) + mul_ec_scalar(c_valid[1][j], open_rands[1]));
         }
     }
 
-    auto tc = timer.elapsed();
-    cout << "Computing C' took " << (tc - tu) * 1e3 << " ms" << endl;
+    auto tc2 = timer.elapsed();
+    cout << ">>>> Computing C'," << (tc2 - tc) * 1e3 << " ms" << endl;
 
     
-    ecprotocol.init_mul();
     // randomize c_final
-    cout << "generate randoms" << endl;
-    vector<scalarShare> myrandomshares;
-    scalarShare __;
+    ecprotocol.init_mul();
+
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            typename scalarShare::clear tmp;
-            myrandomshares.push_back({});
-            preprocessing.get_two(DATA_INVERSE, myrandomshares.back(), __);
-            ecprotocol.prepare_scalar_mul(myrandomshares.back(), c_final[INPUTSIZE*i + j]);;
+            ecprotocol.prepare_scalar_mul(myrandomshares[INPUTSIZE*i + j], c_final[INPUTSIZE*i + j]);;
         }
     }
-    cout << "-- done --" << endl;
-
     ecprotocol.exchange();
     ec_output.init_open(P);
     for (int i = 0; i < INPUTSIZE; i++){
@@ -388,6 +458,9 @@ void run(int argc, const char** argv)
             ec_output.prepare_open(c_final_randomized.back());
         }
     }
+    auto tcrand = timer.elapsed();
+    cout << ">>>> Computing C' * rand," << (tcrand - tc2) * 1e3 << ", ms" << endl;
+
 
     vector<typename ecShare::clear> condition_result[INPUTSIZE];
     ec_output.exchange(P);
@@ -396,7 +469,14 @@ void run(int argc, const char** argv)
             condition_result[i].push_back(ec_output.finalize_open());
         }
     }
+    auto tcout = timer.elapsed();
+    cout << ">>>> Open C'," << (tcout- tcrand) * 1e3 << ", ms" << endl;
+
     ec_output.Check(P);
+
+    auto tmc1 = timer.elapsed();
+    cout << ">>>> maccheck 1," << (tmc1 - tcout) * 1e3 << ", ms" << endl;
+
 
     ec_output.init_open(P);
     P256Element O;
@@ -417,9 +497,16 @@ void run(int argc, const char** argv)
             }
         }
     }
+    auto topenres = timer.elapsed();
+    cout << ">>>> Open result," << (topenres - tmc1) * 1e3 << ", ms" << endl;
+
     ec_output.Check(P);
 
-    cout << "Final time' " << timer.elapsed() * 1e3 << " ms" << endl;
+    auto tmc2 = timer.elapsed();
+    cout << ">>>> maccheck 2," << (tmc2 - topenres) * 1e3 << ", ms" << endl;
+
+
+    cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
     (P.total_comm() - stats).print(true);
 
 
