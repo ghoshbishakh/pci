@@ -531,9 +531,17 @@ void run(int argc, const char** argv)
     for (int i = 0; i < INPUTSIZE; i++)
     {
         for (int j = 0; j < INPUTSIZE; j++){
-            pool.push_task([&c3, E_share, E_share_, open_rands, i,j, INPUTSIZE]{
-                c3[i*INPUTSIZE + j] = (E_share[0][i] - E_share_[1][j]) + exp_gt_scalar((E_share[1][j] - E_share_[0][i]), open_rands[0]);
+            gtShare e01 = E_share[0][i];
+            gtShare e_1j = E_share_[1][j];
+            gtShare e1j = E_share[1][j];
+            gtShare e_01 = E_share_[0][i];
+            GtElement::Scalar or0 = open_rands[0];
+
+            pool.push_task([&c3, e01, e_1j, e1j, e_01, or0, i,j, INPUTSIZE]{
+                c3[i*INPUTSIZE + j] = (e01 - e_1j) + exp_gt_scalar((e1j - e_01), or0);
                 });
+                // c3[i*INPUTSIZE + j] = (E_share[0][i] - E_share_[1][j]) + exp_gt_scalar((E_share[1][j] - E_share_[0][i]), open_rands[0]);
+
         }
     }
     pool.wait_for_tasks();
@@ -546,14 +554,19 @@ void run(int argc, const char** argv)
     for (int i = 0; i < INPUTSIZE; i++)
     {
         for (int j = 0; j < INPUTSIZE; j++){
-            // pool.push_task([c1, c2, c3, &c4, open_rands, i,j, INPUTSIZE]{
-            //     c4[(INPUTSIZE*i) + j] = c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]);
-            //     });
-                c4[(INPUTSIZE*i) + j] = c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]);
+            gtShare c3item = c3[(INPUTSIZE*i) + j];
+            gtShare c1item = c1[i];
+            gtShare c2item = c2[j];
+            GtElement::Scalar or1 = open_rands[1];
+            GtElement::Scalar or2 = open_rands[2];
+            pool.push_task([&c4, c1item, c2item, c3item, or1, or2, open_rands, i,j, INPUTSIZE]{
+                c4[(INPUTSIZE*i) + j] = c3item + exp_gt_scalar(c1item, or1) + exp_gt_scalar(c2item, or2);
+                });
+                // c4[(INPUTSIZE*i) + j] = c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]);
 
         }
     }
-    // pool.wait_for_tasks();
+    pool.wait_for_tasks();
 
 
     auto tc4 = timer.elapsed();
