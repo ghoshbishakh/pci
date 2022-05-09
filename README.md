@@ -1,3 +1,71 @@
+# Private Certifier Intersection
+
+The implementation is based on the low level interface provided by `MPSPDZ`.
+The `MPSPDZ` README follows below.
+
+## Build instructions
+
+### Install Prerequisites
+
+These instructions are for Ubuntu 18.04 to 22.04.
+
+Assuming a fresh EC2 instance with Ubuntu server, please install the following:
+
+```
+sudo apt update
+sudo apt-get install automake build-essential git libboost-dev libboost-thread-dev libntl-dev libsodium-dev libssl-dev libtool m4 python3 texinfo yasm cmake libgmp-dev
+```
+
+**Install relic:**
+```
+git clone git@github.com:relic-toolkit/relic.git
+cd relic
+# OPTIONAL: git checkout relic-toolkit-0.5.0
+mkdir -p relic-target
+cd relic-target
+# For RELIC 0.5.0: ../preset/x64-pbc-bls381.sh ../
+../preset/x64-pbc-bls12-381.sh ../
+make -j 40
+sudo make install
+```
+
+**Build pci:**
+```
+git clone git@github.com:ghoshbishakh/pci.git
+cd pci
+git checkout pci_final
+make -j8 tldr
+make bls -j 40
+make ecdsa -j 40
+```
+
+## Running benchmarks
+
+BLS:
+
+Run the two parties:
+
+` ./mascot-bls-party.x -p 0 -I 10`
+
+` ./mascot-bls-party.x -p 1 -I 10`
+
+`-p denotes player 0/1`
+
+`-I specifies the size of the input set`
+
+To use different hosts, edit the `pci_ip.txt` file. Then add the additional option  `-ip pci_ip.txt` to the above commands.
+
+For ECDSA use the executable `./mascot-bls-party.x`
+
+
+----
+
+The changes are concentrated mostly in the two directories `ecdsa` and `bls`.
+The Mult-G-S / Exp-GT-S protocol specific code is in `Protocols` directory. Compare the pci_final branch to the master branch of MPSPDZ to realize the changes.
+
+----
+
+
 # Multi-Protocol SPDZ [![Documentation Status](https://readthedocs.org/projects/mp-spdz/badge/?version=latest)](https://mp-spdz.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://dev.azure.com/data61/MP-SPDZ/_apis/build/status/data61.MP-SPDZ?branchName=master)](https://dev.azure.com/data61/MP-SPDZ/_build/latest?definitionId=7&branchName=master) [![Gitter](https://badges.gitter.im/MP-SPDZ/community.svg)](https://gitter.im/MP-SPDZ/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Software to benchmark various secure multi-party computation (MPC)
