@@ -1,7 +1,7 @@
 # Private Certifier Intersection
 
 The implementation is based on the low level interface provided by `MPSPDZ`.
-The `MPSPDZ` README follows below.
+The `MPSPDZ` README is also appended below.
 
 ## Build instructions
 
