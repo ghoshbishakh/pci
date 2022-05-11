@@ -204,7 +204,7 @@ void run(int argc, const char** argv)
     
     thread_pool pool;
 
-    int COMMON = 2;
+    int COMMON = 1;
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
     OnlineOptions::singleton.batch_size = INPUTSIZE * 10;

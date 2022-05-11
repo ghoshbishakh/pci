@@ -153,7 +153,7 @@ void run(int argc, const char** argv)
     cout << ">>>> Input size (each party)," << INPUTSIZE << "," << endl;
     
 
-    int COMMON = 2;
+    int COMMON = 1;
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
 
