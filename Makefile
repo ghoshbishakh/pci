@@ -208,6 +208,9 @@ Fake-Offline.x: Utils/Fake-Offline.o $(VM)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 %-bls-party.x: bls/%-bls-party.o bls/P256Element.o bls/blsElement.o $(VM)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) $(LIBRELIC)
+%-blsbench.x: bls/%-blsbench.o bls/P256Element.o bls/blsElement.o $(VM)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) $(LIBRELIC)
+
 
 replicated-bin-party.x: GC/square64.o
 replicated-ring-party.x: GC/square64.o
@@ -250,6 +253,7 @@ semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o
 semi-bls-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 mascot-bls-party.x: $(OT) $(LIBSIMPLEOT)
+mascot-blsbench.x: $(OT) $(LIBSIMPLEOT)
 fake-spdz-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 fake-spdz-bls-party.x: $(OT) $(LIBSIMPLEOT)
 emulate.x: GC/FakeSecret.o
