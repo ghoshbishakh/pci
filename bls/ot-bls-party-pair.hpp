@@ -172,9 +172,9 @@ void run(int argc, const char** argv)
             "-I", // Flag token.
             "--inputs" // Flag token.
     );
-    INPUTSIZE = 1000;
+    int INPUTSIZE = 1000;
     opt.parse(argc, argv);
-    OnlineOptions::singleton.batch_size = 10000;
+    OnlineOptions::singleton.batch_size = 20000;
 
     // Setup network with two players
     Names N(opt, argc, argv, 2);
@@ -197,17 +197,21 @@ void run(int argc, const char** argv)
     cout << "chosen order: " << endl;
     cout << GtElement::Scalar::pr() << endl;
 
-    // Input generation , let P0 perform it ================================
+    // Input generation ================================
     vector<G1Element> G1Arr;
     vector<G2Element> G2Arr;
+    vector<G2Element> MulG2Arr;
+    vector<G1Element> MulG1Arr;
     vector<GtElement> GtArr;
+    vector<G1Element::Scalar> ScalarArr;
 
     G1Element g1tmp;
     G2Element g2tmp;
-    G3Element gttmp;
+    GtElement gttmp;
+    G1Element::Scalar scalartmp;
 
     SeededPRNG G;
-    cout << "generating random G1 G2" << endl;
+    cout << "generating random G1 G2 and scalar" << endl;
     G1Element::Scalar sk;
 
     G1Element signature1, signature2;
@@ -215,11 +219,15 @@ void run(int argc, const char** argv)
     {
         g1tmp.randomize(G);
         g2tmp.randomize(G);
+        scalartmp.randomize(G);
         gttmp = pair_g1_g2(g1tmp, g2tmp);
 
         G1Arr.push_back(g1tmp);
         G2Arr.push_back(g2tmp);
+        ScalarArr.push_back(scalartmp);
         GtArr.push_back(gttmp);
+        MulG2Arr.push_back(scalartmp * g2tmp);
+        MulG1Arr.push_back(scalartmp * g1tmp);
     }
 
     cout << "==========  Input generation done ============" << endl;
@@ -293,8 +301,15 @@ void run(int argc, const char** argv)
 
     typename gtShare::Input gt_input(gt_output, gt_preprocessing, P);
 
-    EcBeaver<gtShare, scalarShare> gtprotocol(P);
-    gtprotocol.init(preprocessing, gt_output, output);
+    PairBeaver<gtShare, g1Share, g2Share, scalarShare> gtprotocol(P);
+    gtprotocol.init(preprocessing, gt_output, output, g1_output, g2_output);
+
+    EcBeaver<g1Share, scalarShare> g1mulprotocol(P);
+    g1mulprotocol.init(preprocessing, g1_output, output);
+
+    EcBeaver<g2Share, scalarShare> g2mulprotocol(P);
+    g2mulprotocol.init(preprocessing, g2_output, output);
+
     // =============================================
 
 
@@ -303,56 +318,177 @@ void run(int argc, const char** argv)
     // Input Shares
     vector<g1Share> g1_shares[2];
     vector<g2Share> g2_shares[2];
+    vector<scalarShare> scalar_shares[2];
 
 
     // Give Input
     g1_input.reset_all(P);
     g2_input.reset_all(P);
+    input.reset_all(P);
     for (int i = 0; i < INPUTSIZE; i++){
         g1_input.add_from_all(G1Arr[i]);
-        g2_input.add_from_all(G1Arr[i]);
+        g2_input.add_from_all(G2Arr[i]);
+        input.add_from_all(ScalarArr[i]);
     }
     g1_input.exchange();
     g2_input.exchange();
+    input.exchange();
     for (int i = 0; i < INPUTSIZE; i++)
     {
         // shares of party A
         g1_shares[0].push_back(g1_input.finalize(0));
         g2_shares[0].push_back(g2_input.finalize(0));
+        scalar_shares[0].push_back(input.finalize(0));
 
         // shares of party B
         g1_shares[1].push_back(g1_input.finalize(1));
         g2_shares[1].push_back(g2_input.finalize(1));
+        scalar_shares[1].push_back(input.finalize(1));
 
     }
     cout << "---- inputs shared ----" << N.my_num() << endl;
-
     auto tinput = timer.elapsed();
+
     cout << ">>>> Input sharing," << tinput * 1e3 << ", ms" << endl;
 
 
     // forget about shares from p1, work on shares from p0 only .. same thing
 
     cout << "---- computing pairings ----" << N.my_num() << endl;
+    auto pairing_start = timer.elapsed();
 
     vector<gtShare> pairresults;
     gtShare tmp;
 
-    gtprotocol.init_mul();
+    gtprotocol.init_pair();
     for (int i = 0; i < INPUTSIZE; i++)
     {
-        gtprotocol.prepare_pair(g1_shares[INPUTSIZE], g2_shares[INPUTSIZE]);
+        gtprotocol.prepare_pair(g1_shares[0][i], g2_shares[0][i]);
     }
     gtprotocol.exchange();
     for (int i = 0; i < INPUTSIZE; i++)
     {
-      pairresults.push_back(gtprotocol.finalize_mul();
+      pairresults.push_back(gtprotocol.finalize_pair());
     }
 
+    auto pairing_final = timer.elapsed();
 
+    // Open
+    vector<typename gtShare::open_type> pairresults_open;
+    cout << "------  opening pairs ------" << endl;
+    gt_output.init_open(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        gt_output.prepare_open(pairresults[i]);
+    }
+    gt_output.exchange(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        pairresults_open.push_back(gt_output.finalize_open());
+        if(P.my_num() == 0){
+            assert(pairresults_open[i] == GtArr[i]);
+        }
+    }
+    gt_output.Check(P);
+    auto pairing_out = timer.elapsed();
+
+    cout << ">>>> #Pairs," << INPUTSIZE  << endl;
+    cout << ">>>> Pair," << (pairing_final - pairing_start) * 1e3 << ", ms" << endl;
+    cout << ">>>> Pair Open," <<  (pairing_out - pairing_final) * 1e3 << ", ms" << endl;
     cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
-    (P.total_comm() - stats).print(true);
+    
+
+// --------- benchmark EXP GS for G1 ----------------
 
 
+
+    cout << "---- computing EXP G S ----" << N.my_num() << endl;
+    auto mul_start = timer.elapsed();
+
+    vector<g1Share> mulg1results;
+
+    g1mulprotocol.init_mul();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        g1mulprotocol.prepare_scalar_mul(scalar_shares[0][i], g1_shares[0][i]);
+    }
+    g1mulprotocol.exchange();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+      mulg1results.push_back(g1mulprotocol.finalize_mul());
+    }
+
+    auto mul_final = timer.elapsed();
+
+    // Open
+    vector<typename g1Share::open_type> mulg1results_open;
+    cout << "------  opening pairs ------" << endl;
+    g1_output.init_open(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        g1_output.prepare_open(mulg1results[i]);
+    }
+    g1_output.exchange(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        mulg1results_open.push_back(g1_output.finalize_open());
+        if(P.my_num() == 0){
+            assert(mulg1results_open[i] == MulG1Arr[i]);
+        }
+    }
+    g1_output.Check(P);
+    auto mul_out = timer.elapsed();
+
+    cout << ">>>> #G1 Muls," << INPUTSIZE  << endl;
+    cout << ">>>> G1 Mul," << (mul_final - mul_start) * 1e3 << ", ms" << endl;
+    cout << ">>>> G1 Muls Open," <<  (mul_out - mul_final) * 1e3 << ", ms" << endl;
+    cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
+    
+
+
+// --------- benchmark EXP GS for G2 ----------------
+
+
+
+    cout << "---- computing EXP G S ----" << N.my_num() << endl;
+    auto mulg2_start = timer.elapsed();
+
+    vector<g2Share> mulg2results;
+
+    g2mulprotocol.init_mul();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        g2mulprotocol.prepare_scalar_mul(scalar_shares[0][i], g2_shares[0][i]);
+    }
+    g2mulprotocol.exchange();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+      mulg2results.push_back(g2mulprotocol.finalize_mul());
+    }
+
+    auto mulg2_final = timer.elapsed();
+
+    // Open
+    vector<typename g2Share::open_type> mulg2results_open;
+    cout << "------  opening pairs ------" << endl;
+    g2_output.init_open(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        g2_output.prepare_open(mulg2results[i]);
+    }
+    g2_output.exchange(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        mulg2results_open.push_back(g2_output.finalize_open());
+        if(P.my_num() == 0){
+            assert(mulg2results_open[i] == MulG2Arr[i]);
+        }
+    }
+    g2_output.Check(P);
+    auto mulg2_out = timer.elapsed();
+
+    cout << ">>>> #G2 Muls," << INPUTSIZE  << endl;
+    cout << ">>>> G2 Mul," << (mulg2_final - mulg2_start) * 1e3 << ", ms" << endl;
+    cout << ">>>> G2 Muls Open," <<  (mulg2_out - mulg2_final) * 1e3 << ", ms" << endl;
+    cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
+
+
+
+cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
+(P.total_comm() - stats).print(true);
     
 }
