@@ -11,8 +11,29 @@ EC_GROUP* P256Element::curve;
 
 void P256Element::init()
 {
-    curve = EC_GROUP_new_by_curve_name(NID_secp256k1);
+    curve = EC_GROUP_new(EC_GFp_simple_method());
     assert(curve != 0);
+    BIGNUM *a = BN_new();
+	BIGNUM *b = BN_new();
+	BIGNUM *p = BN_new();
+	BIGNUM *gx = BN_new();
+	BIGNUM *gy = BN_new();
+	BIGNUM *order = BN_new();
+	BIGNUM *cofactor = BN_new();
+    EC_POINT *g = EC_POINT_new(curve);
+
+    BN_hex2bn(&p, "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
+	BN_hex2bn(&a, "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa984914a144");
+	BN_hex2bn(&b, "7b425ed097b425ed097b425ed097b425ed097b425ed097b4260b5e9c7710c864");
+	BN_hex2bn(&gx, "2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaad245a");
+	BN_hex2bn(&gy, "20ae19a1b8a086b4e01edd2c7748d14c923d4d7e6d7c61b229e9c5a27eced3d9");
+	BN_hex2bn(&order, "1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed");
+	BN_set_word(cofactor, 8);
+
+	EC_GROUP_set_curve_GFp(curve, p, a, b, 0);
+    EC_POINT_set_affine_coordinates_GFp(curve, g, gx, gy, 0);
+	EC_GROUP_set_generator(curve, g, order, cofactor);
+    cout << EC_POINT_new(curve) << endl;;
     auto modulus = EC_GROUP_get0_order(curve);
     Scalar::init_field(BN_bn2dec(modulus), false);
 }
