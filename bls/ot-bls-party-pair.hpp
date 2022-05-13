@@ -172,6 +172,10 @@ void run(int argc, const char** argv)
             "-I", // Flag token.
             "--inputs" // Flag token.
     );
+
+    bool threading_enabled = true;
+    thread_pool pool;
+
     int INPUTSIZE = 1000;
     opt.parse(argc, argv);
     OnlineOptions::singleton.batch_size = 20000;
@@ -351,50 +355,9 @@ void run(int argc, const char** argv)
 
     cout << ">>>> Input sharing," << tinput * 1e3 << ", ms" << endl;
 
+    cout << "prepare triples" << endl;
+    preprocessing.get_triple(-1);
 
-    // forget about shares from p1, work on shares from p0 only .. same thing
-
-    cout << "---- computing pairings ----" << N.my_num() << endl;
-    auto pairing_start = timer.elapsed();
-
-    vector<gtShare> pairresults;
-    gtShare tmp;
-
-    gtprotocol.init_pair();
-    for (int i = 0; i < INPUTSIZE; i++)
-    {
-        gtprotocol.prepare_pair(g1_shares[0][i], g2_shares[0][i]);
-    }
-    gtprotocol.exchange();
-    for (int i = 0; i < INPUTSIZE; i++)
-    {
-      pairresults.push_back(gtprotocol.finalize_pair());
-    }
-
-    auto pairing_final = timer.elapsed();
-
-    // Open
-    vector<typename gtShare::open_type> pairresults_open;
-    cout << "------  opening pairs ------" << endl;
-    gt_output.init_open(P);
-    for (int i = 0; i < INPUTSIZE; i++){
-        gt_output.prepare_open(pairresults[i]);
-    }
-    gt_output.exchange(P);
-    for (int i = 0; i < INPUTSIZE; i++){
-        pairresults_open.push_back(gt_output.finalize_open());
-        if(P.my_num() == 0){
-            assert(pairresults_open[i] == GtArr[i]);
-        }
-    }
-    gt_output.Check(P);
-    auto pairing_out = timer.elapsed();
-
-    cout << ">>>> #Pairs," << INPUTSIZE  << endl;
-    cout << ">>>> Pair," << (pairing_final - pairing_start) * 1e3 << ", ms" << endl;
-    cout << ">>>> Pair Open," <<  (pairing_out - pairing_final) * 1e3 << ", ms" << endl;
-    cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
-    
 
 // --------- benchmark EXP GS for G1 ----------------
 
@@ -411,12 +374,19 @@ void run(int argc, const char** argv)
         g1mulprotocol.prepare_scalar_mul(scalar_shares[0][i], g1_shares[0][i]);
     }
     g1mulprotocol.exchange();
-    for (int i = 0; i < INPUTSIZE; i++)
-    {
-      mulg1results.push_back(g1mulprotocol.finalize_mul());
+
+    if(threading_enabled){
+        g1mulprotocol.finalize_mul(INPUTSIZE, pool, mulg1results);
+    }
+    else{
+        for (int i = 0; i < INPUTSIZE; i++)
+        {
+        mulg1results.push_back(g1mulprotocol.finalize_mul());
+        }
     }
 
     auto mul_final = timer.elapsed();
+    g1mulprotocol.check();
 
     // Open
     vector<typename g1Share::open_type> mulg1results_open;
@@ -441,6 +411,60 @@ void run(int argc, const char** argv)
     cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
     
 
+    // forget about shares from p1, work on shares from p0 only .. same thing
+// --------------------------------------------------------------------
+
+
+    cout << "---- computing pairings ----" << N.my_num() << endl;
+    auto pairing_start = timer.elapsed();
+
+    vector<gtShare> pairresults;
+    gtShare tmp;
+
+    gtprotocol.init_pair();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        gtprotocol.prepare_pair(g1_shares[0][i], g2_shares[0][i]);
+    }
+    gtprotocol.exchange();
+
+    if(threading_enabled){
+        gtprotocol.finalize_pair(INPUTSIZE, pool, pairresults);
+    }
+    else{
+        for (int i = 0; i < INPUTSIZE; i++)
+        {
+        pairresults.push_back(gtprotocol.finalize_pair());
+        }
+    }
+
+    auto pairing_final = timer.elapsed();
+    gtprotocol.check();
+
+    // Open
+    vector<typename gtShare::open_type> pairresults_open;
+    cout << "------  opening pairs ------" << endl;
+    gt_output.init_open(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        gt_output.prepare_open(pairresults[i]);
+    }
+    gt_output.exchange(P);
+
+
+    for (int i = 0; i < INPUTSIZE; i++){
+        pairresults_open.push_back(gt_output.finalize_open());
+        if(P.my_num() == 0){
+            assert(pairresults_open[i] == GtArr[i]);
+        }
+    }
+    gt_output.Check(P);
+    auto pairing_out = timer.elapsed();
+
+    cout << ">>>> #Pairs," << INPUTSIZE  << endl;
+    cout << ">>>> Pair," << (pairing_final - pairing_start) * 1e3 << ", ms" << endl;
+    cout << ">>>> Pair Open," <<  (pairing_out - pairing_final) * 1e3 << ", ms" << endl;
+    cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
+    
 
 // --------- benchmark EXP GS for G2 ----------------
 
@@ -457,12 +481,18 @@ void run(int argc, const char** argv)
         g2mulprotocol.prepare_scalar_mul(scalar_shares[0][i], g2_shares[0][i]);
     }
     g2mulprotocol.exchange();
-    for (int i = 0; i < INPUTSIZE; i++)
-    {
-      mulg2results.push_back(g2mulprotocol.finalize_mul());
-    }
 
+    if(threading_enabled){
+        g2mulprotocol.finalize_mul(INPUTSIZE, pool, mulg2results);
+    }
+    else{
+        for (int i = 0; i < INPUTSIZE; i++)
+        {
+        mulg2results.push_back(g2mulprotocol.finalize_mul());
+        }
+    }
     auto mulg2_final = timer.elapsed();
+    g2mulprotocol.check();
 
     // Open
     vector<typename g2Share::open_type> mulg2results_open;

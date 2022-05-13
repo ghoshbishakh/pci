@@ -216,18 +216,6 @@ void PairBeaver<T, G1, G2, V>::init(Preprocessing<V>& prep,
     this->MCg2 = &MCg2;
 }
 
-// template<class T, class G1, class G2, class V>
-// void PairBeaver<T, G1, G2, V>::init_mul()
-// {
-//     assert(this->prep);
-//     assert(this->MCec);
-//     assert(this->MCscalar);
-//     sharesGt.clear();
-//     sharesScalar.clear();
-//     openedEc.clear();
-//     openedScalar.clear();
-//     triples.clear();
-// }
 
 template<class T, class G1, class G2, class V>
 void PairBeaver<T, G1, G2, V>::init_pair()
@@ -285,31 +273,40 @@ void PairBeaver<T, G1, G2, V>::stop_exchange()
     triple = triples.begin();
 }
 
-// template<class T, class G1, class G2, class V>
-// T PairBeaver<T, G1, G2, V>::finalize_mul(int n)
-// {
-//     (void) n;
-//     typename V::open_type maskedScalar; // epsilon
-//     typename T::open_type maskedEc; // D
 
-//     V& a = (*triple)[0];
-//     T C = (*triple)[2];
-//     T B = (*triple)[1];
-//     T tmpec = {};
+template<class T, class G1, class G2, class V>
+void PairBeaver<T, G1, G2, V>::finalize_pair(int count, thread_pool &pool, vector<T>& resvec)
+{
+    resvec.resize(count);
+    auto mynum_ = P.my_num();
 
-//     maskedScalar = *itScalar;
-//     maskedEc = *itEc;
+    for (int i = 0; i < count; i++)
+    {
+        typename G1::open_type maskedG1; // Epsilon
+        typename G2::open_type maskedG2; // Delta
 
-//     ecscalarmulshare(maskedScalar, B, tmpec);
-//     C += tmpec;
-//     ecscalarmulshare(a, maskedEc, tmpec);
-//     C += tmpec;
-//     C += T::constant(maskedEc * maskedScalar, P.my_num(), MCec->get_alphai());
-//     triple++;
-//     itScalar++;
-//     itEc++;
-//     return C;
-// }
+        G1 A = (*triple)[0];
+        G2 B = (*triple)[1];
+        G1 C = (*triple)[2];
+
+        maskedG1 = *itG1;
+        maskedG2 = *itG2;
+        auto alphai = MCec->get_alphai();
+
+        pool.push_task([&resvec, i, maskedG1, maskedG2, B, C, A, mynum_, alphai]{
+            T tmpec = pair_g1share_p(C) + pair_g1_g2share(maskedG1, B) + pair_g1share_g2(A, maskedG2);
+            tmpec += T::constant(pair_g1_g2(maskedG1, maskedG2), mynum_, alphai);
+            resvec[i] = tmpec;
+        });
+
+        triple++;
+        itG1++;
+        itG2++;
+    }
+    pool.wait_for_tasks();
+}
+
+
 
 template<class T, class G1, class G2, class V>
 T PairBeaver<T, G1, G2, V>::finalize_pair(int n)
@@ -327,11 +324,7 @@ T PairBeaver<T, G1, G2, V>::finalize_pair(int n)
 
     T tmpec = pair_g1share_p(C) + pair_g1_g2share(maskedG1, B) + pair_g1share_g2(A, maskedG2);
     tmpec += T::constant(pair_g1_g2(maskedG1, maskedG2), P.my_num(), MCec->get_alphai());
-    // ecscalarmulshare(maskedScalar, B, tmpec);
-    // C += tmpec;
-    // ecscalarmulshare(a, maskedEc, tmpec);
-    // C += tmpec;
-    // C += T::constant(maskedEc * maskedScalar, P.my_num(), MCec->get_alphai());
+
     triple++;
     itG1++;
     itG2++;
@@ -340,42 +333,6 @@ T PairBeaver<T, G1, G2, V>::finalize_pair(int n)
 
 
 
-// // PARALLEL FINALIZE MUL
-// template<class T, class G1, class G2, class V>
-// void PairBeaver<T, G1, G2, V>::finalize_mul(int count, thread_pool &pool, vector<T>& resvec)
-// {
-//     resvec.resize(count);
-//     auto mynum_ = P.my_num();
-//     for (int i = 0; i < count; i++)
-//     {
-//         typename V::open_type maskedScalar; // epsilon
-//         typename T::open_type maskedEc; // D
-
-//         V& a = (*triple)[0];
-//         T C = (*triple)[2];
-//         T B = (*triple)[1];
-//         maskedScalar = *itScalar;
-//         maskedEc = *itEc;
-//         auto alphai = MCec->get_alphai();
-
-//         pool.push_task([&resvec, i, maskedScalar, B, C, a, maskedEc, mynum_, alphai]{
-//             T tmpres = C;
-//             T tmpec = {};
-//             ecscalarmulshare(maskedScalar, B, tmpec);
-//             tmpres += tmpec;
-//             ecscalarmulshare(a, maskedEc, tmpec);
-//             tmpres += tmpec;
-//             tmpres += T::constant(maskedEc * maskedScalar, mynum_, alphai);
-//             resvec[i] = tmpres;
-//         });
-
-//         triple++;
-//         itScalar++;
-//         itEc++;
-//     }
-
-//     pool.wait_for_tasks();
-// }
 
 template<class T, class G1, class G2, class V>
 void PairBeaver<T, G1, G2, V>::check()

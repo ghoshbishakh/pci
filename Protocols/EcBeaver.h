@@ -114,11 +114,12 @@ public:
     void prepare_pair(const G1& X, const G2& Y, int n = -1);
     void exchange();
     T finalize_pair(int n = -1);
-    
+    void finalize_pair(int count, thread_pool &pool, vector<T>& resvec);
+
     void check();
-    T pair_g1share_p(G1 g1shareip);
-    T pair_g1_g2share(typename G1::open_type g1ip, G2 g2share);
-    T pair_g1share_g2(G1 g1share, typename G2::open_type g2ip);
+    static T pair_g1share_p(G1 g1shareip);
+    static T pair_g1_g2share(typename G1::open_type g1ip, G2 g2share);
+    static T pair_g1share_g2(G1 g1share, typename G2::open_type g2ip);
     void start_exchange();
     void stop_exchange();
 
