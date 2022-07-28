@@ -118,6 +118,7 @@ shamir: shamir-party.x malicious-shamir-party.x atlas-party.x galois-degree.x
 sy: sy-rep-field-party.x sy-rep-ring-party.x sy-shamir-party.x
 
 ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp)) Fake-ECDSA.x
+ecdsa-pciall: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-pciall.cpp)) Fake-ECDSA.x
 bls: $(patsubst bls/%.cpp,%.x,$(wildcard bls/*-bls-party.cpp)) Fake-bls.x
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 bls-static: static-dir $(patsubst bls/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
@@ -206,6 +207,8 @@ Fake-Offline.x: Utils/Fake-Offline.o $(VM)
 
 %-ecdsa-party.x: ECDSA/%-ecdsa-party.o ECDSA/P256Element.o $(VM)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+%-ecdsa-pciall.x: ECDSA/%-ecdsa-pciall.o ECDSA/P256Element.o $(VM)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 %-bls-party.x: bls/%-bls-party.o bls/P256Element.o bls/blsElement.o $(VM)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) $(LIBRELIC)
 %-blsbench.x: bls/%-blsbench.o bls/P256Element.o bls/blsElement.o $(VM)
@@ -254,6 +257,7 @@ no-party.x: Protocols/ShareInterface.o
 semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o
 semi-bls-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
+mascot-ecdsa-pciall.x: $(OT) $(LIBSIMPLEOT)
 mascot-bls-party.x: $(OT) $(LIBSIMPLEOT)
 mascot-blsbench.x: $(OT) $(LIBSIMPLEOT)
 mascot-ecdsabench.x: $(OT) $(LIBSIMPLEOT)

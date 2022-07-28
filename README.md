@@ -37,6 +37,7 @@ git checkout pci_final
 make -j8 tldr
 make bls -j 40
 make ecdsa -j 40
+make ecdsa-pciall -j 40
 ```
 
 ## Running benchmarks
