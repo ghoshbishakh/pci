@@ -242,7 +242,6 @@ void run(int argc, const char** argv)
 
 
 
-
     // scalar processing units ====================
     DataPositions usage(P.num_players());
 
@@ -314,12 +313,26 @@ void run(int argc, const char** argv)
     EcBeaver<g2Share, scalarShare> g2mulprotocol(P);
     g2mulprotocol.init(preprocessing, g2_output, output);
 
+    EcBeaver<gtShare, scalarShare> gtmulprotocol(P);
+    gtmulprotocol.init(preprocessing, gt_output, output);
     // =============================================
 
 
-    cout <<  "------ Input G1 , G2  ----------" << endl;
+    cout << "prepare triples" << endl;
+    preprocessing.get_triple(-1);
+
+    auto tprep = timer.elapsed();
+
+    cout << ">>>> preprocessing," << tprep * 1e3 << ", ms" << endl;
+
+
+
+
+    cout <<  "------ Input G1 , G2, scalar, gt  ----------" << endl;
 
     // Input Shares
+
+
     vector<g1Share> g1_shares[2];
     vector<g2Share> g2_shares[2];
     vector<scalarShare> scalar_shares[2];
@@ -350,16 +363,104 @@ void run(int argc, const char** argv)
         scalar_shares[1].push_back(input.finalize(1));
 
     }
+
+
+
+    cout << "---- inputs shared ----" << N.my_num() << endl;
+    auto tinput2 = timer.elapsed();
+
+    cout << ">>>> Prep + Input sharing," << (tinput2 - tprep) * 1e3 << ", ms" << endl;
+
+
+    vector<gtShare> gt_shares[2];
+
+    gt_input.reset_all(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        gt_input.add_from_all(GtArr[i]);
+    }
+    gt_input.exchange();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        // shares of party A
+        gt_shares[0].push_back(gt_input.finalize(0));
+        // shares of party B
+        gt_shares[1].push_back(gt_input.finalize(1));
+    }
+
+
+
     cout << "---- inputs shared ----" << N.my_num() << endl;
     auto tinput = timer.elapsed();
 
-    cout << ">>>> Input sharing," << tinput * 1e3 << ", ms" << endl;
+    cout << ">>>> " << INPUTSIZE << "Input sharing," << (tinput - tinput2) * 1e3 << ", ms" << endl;
 
-    cout << "prepare triples" << endl;
-    preprocessing.get_triple(-1);
 
 
 // --------- benchmark EXP GS for G1 ----------------
+
+
+
+
+    cout << "---- computing EXP G T ----" << N.my_num() << endl;
+    auto mul_startGT = timer.elapsed();
+
+    vector<gtShare> mulgtresults;
+
+    gtmulprotocol.init_mul();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        gtmulprotocol.prepare_scalar_mul(scalar_shares[0][i], gt_shares[0][i]);
+    }
+    gtmulprotocol.exchange();
+
+    if(threading_enabled){
+        gtmulprotocol.finalize_mul(INPUTSIZE, pool, mulgtresults);
+    }
+    else{
+        for (int i = 0; i < INPUTSIZE; i++)
+        {
+        mulgtresults.push_back(gtmulprotocol.finalize_mul());
+        }
+    }
+
+    auto mul_finalgt = timer.elapsed();
+    gtmulprotocol.check();
+
+    // Open
+    vector<typename gtShare::open_type> mulgtresults_open;
+    cout << "------  opening pairs ------" << endl;
+    gt_output.init_open(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        gt_output.prepare_open(mulgtresults[i]);
+    }
+    gt_output.exchange(P);
+    for (int i = 0; i < INPUTSIZE; i++){
+        mulgtresults_open.push_back(gt_output.finalize_open());
+        // if(P.my_num() == 0){
+        //     assert(mulgtresults_open[i] == MulGtArr[i]);
+        // }
+    }
+    gt_output.Check(P);
+    auto mul_outgt = timer.elapsed();
+
+    cout << ">>>> #GT Muls," << INPUTSIZE  << endl;
+    cout << ">>>> GT Mul," << (mul_finalgt - mul_startGT) * 1e3 << ", ms" << endl;
+    cout << ">>>> GT Muls Open," <<  (mul_outgt - mul_finalgt) * 1e3 << ", ms" << endl;
+    cout << ">>>> Final time," << timer.elapsed() * 1e3 << ", ms" << endl;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
