@@ -209,12 +209,8 @@ void run(int argc, const char** argv)
     // unsigned char* message2 = (unsigned char*)"this is a sample claim2"; // 23
 
 
-    int c1 = 10;
-    int c2 = 5;
-    int myc = c2;
-    if (P.my_num() == 0){
-        myc = c1;
-    }
+    int c1 = 2;
+    int c2 = 3;
 
     unsigned char** messagep1 = new unsigned char*[c1];
     int* messagep1len = new int[c1];
@@ -341,6 +337,18 @@ void run(int argc, const char** argv)
         }
     }
 
+
+
+    vector <P256Element::Scalar> m[2];
+    for (int i = 0; i < c1; i++)
+    {
+        m[0].push_back(hash_to_scalar(messagep1[i], messagep1len[i]));
+    }
+    for (int i = 0; i < c2; i++)
+    {
+        m[1].push_back(hash_to_scalar(messagep2[i], messagep2len[i]));
+    }
+
     cout << "==========  Input generation done ============" << endl;
     Timer timer;
     timer.start();
@@ -373,20 +381,54 @@ void run(int argc, const char** argv)
     // Give Input
     input.reset_all(P);
     for (int i = 0; i < INPUTSIZE; i++)
+    {
+        for (int j = 0; j < c1; j++)
         {
-            input.add_from_all(signatureinputs[(i*myc)].signature.R.x());
-            input.add_from_all(signatureinputs[(i*myc)].signature.s.invert());
+            if (thisplayer)
+            {
+                // p2
+                input.add_other(0);
+                input.add_other(0);
+            }
+            else {
+                // p1
+                input.add_mine(signatureinputs[(i*c1) + j].signature.R.x());
+                input.add_mine(signatureinputs[(i*c1) + j].signature.s.invert());
+            }
         }
+        for (int j = 0; j < c2; j++)
+        {
+            if (thisplayer)
+            {
+                // p2
+                input.add_mine(signatureinputs[(i*c2) + j].signature.R.x());
+                input.add_mine(signatureinputs[(i*c2) + j].signature.s.invert());
+            }
+            else {
+                // p1
+                input.add_other(1);
+                input.add_other(1);
+            }
+        }
+    }
     input.exchange();
+
     for (int i = 0; i < INPUTSIZE; i++)
     {
         // shares of party A
-        r_share[0].push_back(input.finalize(0));
-        s_inv_share[0].push_back(input.finalize(0));
+        for (int j = 0; j < c1; j++)
+        {
+            r_share[0].push_back(input.finalize(0));
+            s_inv_share[0].push_back(input.finalize(0));
+
+        }
 
         // shares of party B
-        r_share[1].push_back(input.finalize(1));
-        s_inv_share[1].push_back(input.finalize(1));
+        for (int j = 0; j < c2; j++){
+            r_share[1].push_back(input.finalize(1));
+            s_inv_share[1].push_back(input.finalize(1));
+        }
+        
     }
     cout << "---- scalar inputs shared ----" << thisplayer << endl;
 
@@ -419,19 +461,47 @@ void run(int argc, const char** argv)
     // Give Input
     ec_input.reset_all(P);
     for (int i = 0; i < INPUTSIZE; i++){
-        ec_input.add_from_all(signatureinputs[(i*myc)].signature.R);
         ec_input.add_from_all(pkinputs[i].Pk);
+        for (int j = 0; j < c1; j++)
+        {
+            if (thisplayer)
+            {
+                // p2
+                ec_input.add_other(0);
+            }
+            else {
+                // p1
+                ec_input.add_mine(signatureinputs[(i*c1) + j].signature.R);
+            }
+        }
+        for (int j = 0; j < c2; j++)
+        {
+            if (thisplayer)
+            {
+                // p2
+                ec_input.add_mine(signatureinputs[(i*c2) + j].signature.R);
+            }
+            else {
+                // p1
+                ec_input.add_other(1);
+            }
+        }
     }
     ec_input.exchange();
     for (int i = 0; i < INPUTSIZE; i++)
     {
-        // shares of party A
-        R_share[0].push_back(ec_input.finalize(0));
         Pk_share[0].push_back(ec_input.finalize(0));
+        // shares of party A
+        for (int j = 0; j < c1; j++)
+        {
+            R_share[0].push_back(ec_input.finalize(0));
+        }
 
         // shares of party B
-        R_share[1].push_back(ec_input.finalize(1));
         Pk_share[1].push_back(ec_input.finalize(1));
+        for (int j = 0; j < c2; j++){
+            R_share[1].push_back(ec_input.finalize(1));
+        }
     }
     cout << "---- ec inputs shared ----" << thisplayer << endl;
 
@@ -440,31 +510,42 @@ void run(int argc, const char** argv)
 
 
     cout << " -------- compute ua1 ub1-----------" << endl;
-    vector<scalarShare> u1_share[2];
-    vector<scalarShare> u2_share[2];
+    vector<scalarShare> u_share[2];
+    vector<scalarShare> v_share[2];
 
-    P256Element::Scalar m[2];
-    m[0] = hash_to_scalar(messagep1[0], messagep1len[0]);
-    m[1] = hash_to_scalar(messagep2[0], messagep2len[0]);
 
     for (int i = 0; i < INPUTSIZE; i++){
-        // u1_a
-        u1_share[0].push_back(s_inv_share[0][i] * m[0]);
-        // u1_b
-        u1_share[1].push_back(s_inv_share[1][i] * m[1]);
+        for (int j = 0; j < c1; j++)
+        {
+            // u_a
+            u_share[0].push_back(s_inv_share[0][i*c1 + j] * m[0][j]);
+        }
+        for (int j = 0; j < c2; j++){
+            // u_b
+            u_share[1].push_back(s_inv_share[1][i*c2 + j] * m[1][j]);
+        }
     }
 
     cout << " -------- compute ua2, ub2-----------" << endl;
     // ua2_i, ub2
     processor.protocol.init_mul();
     for (int i = 0; i < INPUTSIZE; i++){
-        processor.protocol.prepare_mul(r_share[0][i], s_inv_share[0][i]);
-        processor.protocol.prepare_mul(r_share[1][i], s_inv_share[1][i]);
+        for (int j = 0; j < c1; j++){
+            processor.protocol.prepare_mul(r_share[0][i*c1 + j], s_inv_share[0][i*c1 + j]);
+        }
+        for (int j = 0; j < c2; j++){
+            processor.protocol.prepare_mul(r_share[1][i*c2 + j], s_inv_share[1][i*c2 + j]);
+        }
+
     }
     processor.protocol.exchange();
     for (int i = 0; i < INPUTSIZE; i++){
-        u2_share[0].push_back(processor.protocol.finalize_mul());
-        u2_share[1].push_back(processor.protocol.finalize_mul());
+        for (int j = 0; j < c1; j++){
+            v_share[0].push_back(processor.protocol.finalize_mul());
+        }
+        for (int j = 0; j < c2; j++){
+            v_share[1].push_back(processor.protocol.finalize_mul());
+        }
     }
 
     auto tu = timer.elapsed();
@@ -518,19 +599,36 @@ void run(int argc, const char** argv)
     vector<ecShare> c_valid[2], c_right[2], c_final, c_final_randomized;
     ecprotocol.init_mul();
     for (int i = 0; i < INPUTSIZE; i++){
-        ecprotocol.prepare_scalar_mul(u2_share[0][i], Pk_share[0][i]);
-        ecprotocol.prepare_scalar_mul(u2_share[1][i], Pk_share[1][i]);
+        for (int j = 0; j < c1; j++){
+            ecprotocol.prepare_scalar_mul(v_share[0][i*c1 + j], Pk_share[0][i]);
+        }
+        for (int j = 0; j < c2; j++){
+            ecprotocol.prepare_scalar_mul(v_share[1][i*c2 + j], Pk_share[1][i]);
+        }
     }
     ecprotocol.exchange();
     for (int i = 0; i < INPUTSIZE; i++){
-        c_right[0].push_back(ecprotocol.finalize_mul());
-        c_right[1].push_back(ecprotocol.finalize_mul());
+        for (int j = 0; j < c1; j++){
+            c_right[0].push_back(ecprotocol.finalize_mul());
+        }
+        for (int j = 0; j < c2; j++){
+            c_right[1].push_back(ecprotocol.finalize_mul());
+        }
     }
 
-
+    ecShare sigvalid;
     for (int i = 0; i < INPUTSIZE; i++){
-        c_valid[0].push_back(c_right[0][i] + u1_share[0][i] - R_share[0][i]);
-        c_valid[1].push_back(c_right[1][i] + u1_share[1][i] - R_share[1][i]);
+        sigvalid = c_right[0][i*c1 + 0] + u_share[0][i*c1 + 0] - R_share[0][i*c1 + 0];
+        for (int j = 1; j < c1; j++){
+            sigvalid = sigvalid + c_right[0][i*c1 + j] + u_share[0][i*c1 + j] - R_share[0][i*c1 + j];
+        }
+        c_valid[0].push_back(sigvalid);
+
+        sigvalid = c_right[1][i*c2 + 0] + u_share[1][i*c2 + 0] - R_share[1][i*c2 + 0];
+        for (int j = 1; j < c1; j++){
+            sigvalid = sigvalid + c_right[1][i*c2 + 0] + u_share[1][i*c2 + 0] - R_share[1][i*c2 + 0];
+        }
+        c_valid[1].push_back(sigvalid);
     }
 
     auto tc = timer.elapsed();
