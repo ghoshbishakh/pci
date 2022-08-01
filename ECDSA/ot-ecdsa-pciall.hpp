@@ -156,8 +156,18 @@ void run(int argc, const char** argv)
             "-I", // Flag token.
             "--inputs" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            1, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Number of Claims", // Help description.
+            "-C", // Flag token.
+            "--claims" // Flag token.
+    );
     opt.parse(argc, argv);
     int INPUTSIZE = 10;
+    int CLAIMS = 1;
     cout << "ECDSA PCI ALL" << endl;
 
     if (opt.get("-I")->isSet){
@@ -166,7 +176,14 @@ void run(int argc, const char** argv)
     else {
         cout << "default input size 10" << endl;
     }
+
+    if (opt.get("-C")->isSet){
+        opt.get("-C")->getInt(CLAIMS);
+    }
+
+
     cout << ">>>> Input size (each party)," << INPUTSIZE << "," << endl;
+    cout << ">>>> Claims of each party," << CLAIMS << "," << endl;
     
 
     int COMMON = 1;
@@ -209,8 +226,8 @@ void run(int argc, const char** argv)
     // unsigned char* message2 = (unsigned char*)"this is a sample claim2"; // 23
 
 
-    int c1 = 2;
-    int c2 = 3;
+    int c1 = CLAIMS;
+    int c2 = CLAIMS;
 
     unsigned char** messagep1 = new unsigned char*[c1];
     int* messagep1len = new int[c1];

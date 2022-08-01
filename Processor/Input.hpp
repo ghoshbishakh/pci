@@ -387,6 +387,17 @@ void ClearInput<T>::add_mine(const open_type& input, int n_bits)
 }
 
 template<class T>
+void ClearInput<T>::add_from_all(const open_type& input, int n_bits)
+{
+    for (int i = 0; i < P.num_players(); i++)
+        if (i == P.my_num())
+            add_mine(input, n_bits);
+        else
+            add_other(i, n_bits);
+}
+
+
+template<class T>
 void ClearInput<T>::add_other(int player, int)
 {
     open_type t;
