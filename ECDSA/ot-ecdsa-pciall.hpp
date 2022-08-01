@@ -558,10 +558,10 @@ void run(int argc, const char** argv)
     // ua2_i, ub2
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < c1; j++){
-            v_share[0].push_back(r_inputs[0][i*c1 + j] * s_inv_share[0][i*c1 + j]);
+            v_share[0].push_back(r_inputs[0][i*c1 + j].x() * s_inv_share[0][i*c1 + j]);
         }
         for (int j = 0; j < c2; j++){
-            v_share[1].push_back(r_inputs[1][i*c2 + j] * s_inv_share[1][i*c2 + j]);
+            v_share[1].push_back(r_inputs[1][i*c2 + j].x() * s_inv_share[1][i*c2 + j]);
         }
     }
 
