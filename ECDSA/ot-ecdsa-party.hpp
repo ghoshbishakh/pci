@@ -74,6 +74,9 @@ Share<P256Element> mul_ec_scalar(Share<P256Element> ecshareip, P256Element::Scal
     return result;
 }
 
+
+
+
 template<template<class U> class T>
 void run(int argc, const char** argv)
 {
@@ -263,9 +266,8 @@ void run(int argc, const char** argv)
 
 
     // Input Shares
-    cout <<  "------ Input ra_i and sa_i_inv ----------" << endl;
+    cout <<  "------ Input sa_i_inv ----------" << endl;
     int thisplayer = N.my_num();
-    vector<scalarShare> r_share[2];
     vector<scalarShare> s_inv_share[2];
 
 
@@ -273,18 +275,15 @@ void run(int argc, const char** argv)
     input.reset_all(P);
     for (int i = 0; i < INPUTSIZE; i++)
         {
-            input.add_from_all(pciinputs[i].signature.R.x());
             input.add_from_all(pciinputs[i].signature.s.invert());
         }
     input.exchange();
     for (int i = 0; i < INPUTSIZE; i++)
     {
         // shares of party A
-        r_share[0].push_back(input.finalize(0));
         s_inv_share[0].push_back(input.finalize(0));
 
         // shares of party B
-        r_share[1].push_back(input.finalize(1));
         s_inv_share[1].push_back(input.finalize(1));
     }
     cout << "---- scalar inputs shared ----" << thisplayer << endl;
@@ -292,7 +291,7 @@ void run(int argc, const char** argv)
 
     // ------------------------------------------------------
 
-    cout <<  "------ Input Ra_i and Pk_i ----------" << endl;
+    cout <<  "------ Input Pk_i ----------" << endl;
 
 
     typedef T<P256Element> ecShare;
@@ -311,28 +310,41 @@ void run(int argc, const char** argv)
     ecprotocol.init(preprocessing, ec_output, output);
 
     // Input Shares
-    vector<ecShare> R_share[2];
     vector<ecShare> Pk_share[2];
 
 
     // Give Input
     ec_input.reset_all(P);
     for (int i = 0; i < INPUTSIZE; i++){
-        ec_input.add_from_all(pciinputs[i].signature.R);
         ec_input.add_from_all(pciinputs[i].Pk);
     }
     ec_input.exchange();
     for (int i = 0; i < INPUTSIZE; i++)
     {
         // shares of party A
-        R_share[0].push_back(ec_input.finalize(0));
         Pk_share[0].push_back(ec_input.finalize(0));
 
         // shares of party B
-        R_share[1].push_back(ec_input.finalize(1));
         Pk_share[1].push_back(ec_input.finalize(1));
     }
     cout << "---- ec inputs shared ----" << thisplayer << endl;
+
+    ClearInput<P256Element> rInput(P);
+    vector<P256Element> r_inputs[2];
+
+    rInput.reset_all();
+    for (int i = 0; i < INPUTSIZE; i++){
+        r_inputs[P.my_num()].push_back(pciinputs[i].signature.R);
+        rInput.add_from_all(pciinputs[i].signature.R);
+    }
+    rInput.exchange();
+    for (int i = 0; i < INPUTSIZE; i++)
+    {
+        r_inputs[1 - P.my_num()].push_back(rInput.finalize(1 - P.my_num()));
+    }
+
+
+    cout << "---- clear R inputs shared ----" << thisplayer << endl;
 
     auto tinput = timer.elapsed();
     cout << ">>>> Input sharing," << tinput * 1e3 << ", ms" << endl;
@@ -354,17 +366,12 @@ void run(int argc, const char** argv)
     }
 
     cout << " -------- compute ua2, ub2-----------" << endl;
-    // ua2_i, ub2
-    processor.protocol.init_mul();
+
     for (int i = 0; i < INPUTSIZE; i++){
-        processor.protocol.prepare_mul(r_share[0][i], s_inv_share[0][i]);
-        processor.protocol.prepare_mul(r_share[1][i], s_inv_share[1][i]);
+        u2_share[0].push_back(r_inputs[0][i].x() * s_inv_share[0][i]);
+        u2_share[1].push_back(r_inputs[1][i].x() * s_inv_share[1][i]);
     }
-    processor.protocol.exchange();
-    for (int i = 0; i < INPUTSIZE; i++){
-        u2_share[0].push_back(processor.protocol.finalize_mul());
-        u2_share[1].push_back(processor.protocol.finalize_mul());
-    }
+
 
     auto tu = timer.elapsed();
     cout << ">>>> Compute u1 and u2," << (tu - tinput) * 1e3 << ", ms" << endl;
@@ -428,8 +435,9 @@ void run(int argc, const char** argv)
 
 
     for (int i = 0; i < INPUTSIZE; i++){
-        c_valid[0].push_back(c_right[0][i] + u1_share[0][i] - R_share[0][i]);
-        c_valid[1].push_back(c_right[1][i] + u1_share[1][i] - R_share[1][i]);
+        c_valid[0].push_back((c_right[0][i] + u1_share[0][i])  - ecShare::constant(r_inputs[0][i], P.my_num(), mac_key));
+        c_valid[1].push_back((c_right[1][i] + u1_share[1][i])  - ecShare::constant(r_inputs[1][i], P.my_num(), mac_key));
+
     }
 
     auto tc = timer.elapsed();
@@ -452,9 +460,6 @@ void run(int argc, const char** argv)
             mul_ec_scalar(c_valid1j, or1));
             });
 
-            // c_final[i*INPUTSIZE + j]  = ((Pk_share[0][i] - Pk_share[1][j]) + 
-            // mul_ec_scalar(c_valid[0][i], open_rands[0]) + 
-            // mul_ec_scalar(c_valid[1][j], open_rands[1]));
         }
     }
     pool.wait_for_tasks();
