@@ -192,6 +192,16 @@ void run(int argc, const char** argv)
             "-I", // Flag token.
             "--inputs" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            1, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Number of Claims", // Help description.
+            "-C", // Flag token.
+            "--claims" // Flag token.
+    );
+
     opt.parse(argc, argv);
     int INPUTSIZE = 10;
     if (opt.get("-I")->isSet){
@@ -200,7 +210,15 @@ void run(int argc, const char** argv)
     else {
         cout << "default input size 10" << endl;
     }
+
+    int CLAIMS = 1;
+    if (opt.get("-C")->isSet){
+        opt.get("-C")->getInt(CLAIMS);
+    }
+
     cout << ">>>> Input size (each party)," << INPUTSIZE << "," << endl;
+    cout << ">>>> Claims of each party," << CLAIMS << "," << endl;
+    
     
     thread_pool pool;
 
@@ -235,10 +253,32 @@ void run(int argc, const char** argv)
     vector<PCIBLSInput> generatedinputsA;
     vector<PCIBLSInput> generatedinputsB;
     ClearInput<PCIBLSInput> clearInput(P);
-    uint8_t message11[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; // claim of p1
-    uint8_t message12[10] = { 0, 1, 2, 23, 4, 5, 6, 7, 18, 19}; // claim of p1
-    uint8_t message21[10] = { 10, 12, 7, 3, 4, 5, 16, 7, 8, 9}; // claim of p2
-    uint8_t message22[10] = { 10, 12, 7, 43, 4, 55, 16, 17, 8, 9}; // claim of p2
+    
+    int claimc1 = CLAIMS;
+    int claimc2 = CLAIMS;
+    int msglen = 10;
+
+    uint8_t** messagep1 = new uint8_t*[claimc1];
+    uint8_t** messagep2 = new uint8_t*[claimc2];
+
+    for (int i = 0; i < claimc1; i++)
+    {
+            messagep1[i] = new uint8_t[msglen];
+            for (int j = 0; j < msglen; j++)
+            {
+                messagep1[i][j] = rand() % 100;
+            }
+            
+    }
+    for (int i = 0; i < claimc2; i++)
+    {
+            messagep2[i] = new uint8_t[msglen];
+            for (int j = 0; j < msglen; j++)
+            {
+                messagep2[i][j] = rand() % 100;
+            }
+    }
+
 
     SeededPRNG G;
     if (P.my_num() == 0){
@@ -255,19 +295,26 @@ void run(int argc, const char** argv)
             G2Element Pk(sk);
 
             // sign1
-            signature1 = G1Element::sign(message11, sizeof(message11), sk);
-            assert(G1Element::ver(signature1, message11, sizeof(message11), Pk) == true);
-            signature2 = G1Element::sign(message12, sizeof(message12), sk);
-            assert(G1Element::ver(signature2, message12, sizeof(message12), Pk) == true);
-            signature1 = signature1 + signature2;
+
+            signature1 = G1Element::sign(messagep1[0], msglen, sk);
+            assert(G1Element::ver(signature1, messagep1[0], msglen, Pk) == true);
+            for (int j = 1; j < claimc1; j++)
+            {
+                signature2 = G1Element::sign(messagep1[j], msglen, sk);
+                assert(G1Element::ver(signature2, messagep1[j], msglen, Pk) == true);
+                signature1 = signature1 + signature2;
+            }
             generatedinputsA.push_back({Pk, signature1});
 
             // sign2
-            signature1 = G1Element::sign(message21, sizeof(message21), sk);
-            assert(G1Element::ver(signature1, message21, sizeof(message21), Pk) == true);
-            signature2 = G1Element::sign(message22, sizeof(message22), sk);
-            assert(G1Element::ver(signature2, message22, sizeof(message22), Pk) == true);
-            signature1 = signature1 + signature2;
+            signature1 = G1Element::sign(messagep2[0], msglen, sk);
+            assert(G1Element::ver(signature1, messagep2[0], msglen, Pk) == true);
+            for (int j = 1; j < claimc2; j++)
+            {
+                signature2 = G1Element::sign(messagep2[j], msglen, sk);
+                assert(G1Element::ver(signature2, messagep2[j], msglen, Pk) == true);
+                signature1 = signature1 + signature2;
+            }
             generatedinputsB.push_back({Pk, signature1});
 
         }
@@ -305,8 +352,20 @@ void run(int argc, const char** argv)
     // Parties compute E and E' sets
     vector<GtElement> E_set;
     vector<GtElement> E_set_;
-    G1Element m1combined = msg_to_g1(message11, sizeof(message11)) + msg_to_g1(message12, sizeof(message12));
-    G1Element m2combined = msg_to_g1(message21, sizeof(message21)) + msg_to_g1(message22, sizeof(message22));
+
+
+    G1Element m1combined = msg_to_g1(messagep1[0], msglen);
+    for (int j = 1; j < claimc1; j++)
+    {
+        m1combined += msg_to_g1(messagep1[j], msglen);
+    }
+    
+    G1Element m2combined = msg_to_g1(messagep2[0], msglen);
+    for (int j = 1; j < claimc2; j++)
+    {
+        m2combined += msg_to_g1(messagep2[j], msglen);
+    }
+
 
     if (P.my_num() == 0){
         for (int i = 0; i < INPUTSIZE; i++){
