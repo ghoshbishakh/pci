@@ -227,6 +227,12 @@ void run(int argc, const char** argv)
             clearInput.add_mine(generatedinputsB[i]);
         }
         clearInput.exchange();
+        clearInput.reset_all();
+
+        // Clean vectors
+        vector<PCIInput>().swap(generatedinputsA);
+        vector<PCIInput>().swap(generatedinputsB);
+
     }
 
     if (P.my_num() == 1){
@@ -241,6 +247,7 @@ void run(int argc, const char** argv)
             pciinputs.push_back(clearInput.finalize(0));
             cout << pciinputs[i].Pk << pciinputs[i].signature.R << endl;
         }
+        clearInput.reset_all();
     }
 
     cout << "==========  Input generation done ============" << endl;
@@ -286,6 +293,7 @@ void run(int argc, const char** argv)
         // shares of party B
         s_inv_share[1].push_back(input.finalize(1));
     }
+    input.reset_all(P);
     cout << "---- scalar inputs shared ----" << thisplayer << endl;
 
 
@@ -327,6 +335,7 @@ void run(int argc, const char** argv)
         // shares of party B
         Pk_share[1].push_back(ec_input.finalize(1));
     }
+    ec_input.reset_all(P);
     cout << "---- ec inputs shared ----" << thisplayer << endl;
 
     ClearInput<P256Element> rInput(P);
@@ -342,6 +351,7 @@ void run(int argc, const char** argv)
     {
         r_inputs[1 - P.my_num()].push_back(rInput.finalize(1 - P.my_num()));
     }
+    rInput.reset_all();
 
 
     cout << "---- clear R inputs shared ----" << thisplayer << endl;
@@ -372,6 +382,10 @@ void run(int argc, const char** argv)
         u2_share[1].push_back(r_inputs[1][i].x() * s_inv_share[1][i]);
     }
 
+    // clear unused vectors
+    vector<scalarShare>().swap(s_inv_share[0]);
+    vector<scalarShare>().swap(s_inv_share[1]);
+
 
     auto tu = timer.elapsed();
     cout << ">>>> Compute u1 and u2," << (tu - tinput) * 1e3 << ", ms" << endl;
@@ -396,6 +410,10 @@ void run(int argc, const char** argv)
     for (int i = 0; i < 2; i++){
         output.prepare_open(to_open_rands[i]);
     }
+
+    // clear unused vectors
+    vector<scalarShare>().swap(to_open_rands);
+
     output.exchange(P);
     for (int i = 0; i < 2; i++){
         open_rands[i] = output.finalize_open();
@@ -421,17 +439,24 @@ void run(int argc, const char** argv)
     cout << "-- done --" << endl;
 
 
-    vector<ecShare> c_valid[2], c_right[2], c_final, c_final_randomized;
+    vector<ecShare> c_valid[2], c_right[2], c_final;
     ecprotocol.init_mul();
     for (int i = 0; i < INPUTSIZE; i++){
         ecprotocol.prepare_scalar_mul(u2_share[0][i], Pk_share[0][i]);
         ecprotocol.prepare_scalar_mul(u2_share[1][i], Pk_share[1][i]);
     }
+
+    // clear unused vectors
+    vector<scalarShare>().swap(u2_share[0]);
+    vector<scalarShare>().swap(u2_share[1]);
+    
     ecprotocol.exchange();
     for (int i = 0; i < INPUTSIZE; i++){
         c_right[0].push_back(ecprotocol.finalize_mul());
         c_right[1].push_back(ecprotocol.finalize_mul());
     }
+    ecprotocol.init_mul();
+
 
 
     for (int i = 0; i < INPUTSIZE; i++){
@@ -439,6 +464,21 @@ void run(int argc, const char** argv)
         c_valid[1].push_back((c_right[1][i] + u1_share[1][i])  - ecShare::constant(r_inputs[1][i], P.my_num(), mac_key));
 
     }
+
+    cout << "-- clearing unused memory --" << endl;
+
+
+    // Clear unused memory
+    vector<ecShare>().swap(c_right[0]);
+    vector<ecShare>().swap(c_right[1]);
+
+    vector<scalarShare>().swap(u1_share[0]);
+    vector<scalarShare>().swap(u1_share[1]);
+    
+    vector<P256Element>().swap(r_inputs[0]);
+    vector<P256Element>().swap(r_inputs[1]);
+
+
 
     auto tc = timer.elapsed();
     cout << ">>>> Computing C1 C2," << (tc - trands) * 1e3 << ", ms" << endl;
@@ -464,6 +504,10 @@ void run(int argc, const char** argv)
     }
     pool.wait_for_tasks();
 
+    // clear unused vectors
+    vector<ecShare>().swap(c_valid[0]);
+    vector<ecShare>().swap(c_valid[1]);
+
 
     auto tc2 = timer.elapsed();
     cout << ">>>> Computing C'," << (tc2 - tc) * 1e3 << " ms" << endl;
@@ -477,8 +521,21 @@ void run(int argc, const char** argv)
             ecprotocol.prepare_scalar_mul(myrandomshares[INPUTSIZE*i + j], c_final[INPUTSIZE*i + j]);;
         }
     }
+
+    // clear unused vectors
+    c_final.clear();
+
+    cout << "EXCHANGE" << endl;
+
     ecprotocol.exchange();
-    ecprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c_final_randomized);
+    cout << "EXCHANGE DONE" << endl;
+
+    ecprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c_final);
+
+    ecprotocol.init_mul();
+
+    // clear unused vectors
+    vector<scalarShare>().swap(myrandomshares);
 
     auto tcrand = timer.elapsed();
     cout << ">>>> Computing C' * rand," << (tcrand - tc2) * 1e3 << ", ms" << endl;
@@ -486,9 +543,12 @@ void run(int argc, const char** argv)
     ec_output.init_open(P);
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            ec_output.prepare_open(c_final_randomized[i*INPUTSIZE + j]);
+            ec_output.prepare_open(c_final[i*INPUTSIZE + j]);
         }
     }
+
+    // clear unused vectors
+    vector<ecShare>().swap(c_final);
 
     vector<typename ecShare::clear> condition_result[INPUTSIZE];
     ec_output.exchange(P);
@@ -497,6 +557,9 @@ void run(int argc, const char** argv)
             condition_result[i].push_back(ec_output.finalize_open());
         }
     }
+
+
+
     auto tcout = timer.elapsed();
     cout << ">>>> Open C'," << (tcout- tcrand) * 1e3 << ", ms" << endl;
 
