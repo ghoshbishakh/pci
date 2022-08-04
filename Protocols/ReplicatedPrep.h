@@ -117,6 +117,7 @@ public:
     { this->triples.push_back(triple); }
 
     void shrink_to_fit();
+    void clear_buffer();
 
     void buffer_personal_triples(int, ThreadQueues*) {}
     void buffer_personal_triples(vector<array<T, 3>>&, int, int) {}

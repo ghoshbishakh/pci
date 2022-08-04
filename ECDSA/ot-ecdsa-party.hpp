@@ -175,7 +175,7 @@ void run(int argc, const char** argv)
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
 
-    OnlineOptions::singleton.batch_size = 10 * INPUTSIZE;
+    OnlineOptions::singleton.batch_size = 2 * INPUTSIZE;
     thread_pool pool;
 
 
@@ -266,6 +266,12 @@ void run(int argc, const char** argv)
     }
 
     cout << "==========  Input generation done ============" << endl;
+
+    int thisplayer = N.my_num();
+
+    typedef T<P256Element::Scalar> scalarShare;
+    vector<scalarShare> s_inv_share[2];
+
     Timer timer;
     timer.start();
     auto stats = P.total_comm();
@@ -273,7 +279,6 @@ void run(int argc, const char** argv)
 
     DataPositions usage(P.num_players());
 
-    typedef T<P256Element::Scalar> scalarShare;
 
     typename scalarShare::mac_key_type mac_key;
     scalarShare::read_or_generate_mac_key("", P, mac_key);
@@ -283,14 +288,13 @@ void run(int argc, const char** argv)
     typename scalarShare::LivePrep preprocessing(0, usage);
     
     SubProcessor<scalarShare> processor(output, preprocessing, P);
-
+{
     typename scalarShare::Input input(output, preprocessing, P);
 
 
     // Input Shares
     cout <<  "------ Input sa_i_inv ----------" << endl;
-    int thisplayer = N.my_num();
-    vector<scalarShare> s_inv_share[2];
+
 
 
     // Give Input
@@ -309,6 +313,7 @@ void run(int argc, const char** argv)
         s_inv_share[1].push_back(input.finalize(1));
     }
     input.reset_all(P);
+}
     cout << "---- scalar inputs shared ----" << thisplayer << endl;
 
 
@@ -442,21 +447,24 @@ void run(int argc, const char** argv)
     auto topen3rand = timer.elapsed();
     cout << ">>>> Open 2 rands," << (topen3rand - tu) * 1e3 << ", ms" << endl;
 
+    OnlineOptions::singleton.batch_size = INPUTSIZE * INPUTSIZE;
+
 
     cout << "------  generate " << (INPUTSIZE * INPUTSIZE) << " randoms ------" << endl;
 
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            typename scalarShare::clear tmp;
             myrandomshares.push_back({});
             preprocessing.get_two(DATA_INVERSE, myrandomshares.back(), __);
         }
     }
+    preprocessing.clear_buffer();
     auto trands = timer.elapsed();
     cout << ">>>> Generate input times rands," << (trands - topen3rand) * 1e3 << ", ms" << endl;
 
     cout << "-- done --" << endl;
 
+    OnlineOptions::singleton.batch_size = 2*INPUTSIZE;
 
     vector<ecShare> c_valid[2], c_right[2], c_final;
     ecprotocol.init_mul();
@@ -486,6 +494,7 @@ void run(int argc, const char** argv)
 
     cout << "-- clearing unused memory --" << endl;
 
+    preprocessing.clear_buffer();
 
     // Clear unused memory
     vector<ecShare>().swap(c_right[0]);
@@ -525,26 +534,27 @@ void run(int argc, const char** argv)
 
     
     // randomize c_final
+    OnlineOptions::singleton.batch_size = INPUTSIZE*INPUTSIZE;
+
     ecprotocol.init_mul();
 
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            ecprotocol.prepare_scalar_mul(myrandomshares[INPUTSIZE*i + j], c_final[INPUTSIZE*i + j]);;
+            ecprotocol.prepare_scalar_mul(myrandomshares[INPUTSIZE*i + j], c_final[INPUTSIZE*i + j]);
         }
     }
 
     // clear unused vectors
     vector<scalarShare>().swap(myrandomshares);
-
     // clear unused vectors
     c_final.clear();
+    preprocessing.clear_buffer();
 
     ecprotocol.exchange();
 
     ecprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c_final);
 
     ecprotocol.init_mul();
-
 
     auto tcrand = timer.elapsed();
     cout << ">>>> Computing C' * rand," << (tcrand - tc2) * 1e3 << ", ms" << endl;
@@ -555,6 +565,7 @@ void run(int argc, const char** argv)
             ec_output.prepare_open(c_final[i*INPUTSIZE + j]);
         }
     }
+
 
     // clear unused vectors
     vector<ecShare>().swap(c_final);

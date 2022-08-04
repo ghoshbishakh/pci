@@ -37,11 +37,12 @@ void EcBeaver<T, V>::init_mul()
     assert(this->prep);
     assert(this->MCec);
     assert(this->MCscalar);
-    sharesEc.clear();
-    sharesScalar.clear();
-    openedEc.clear();
-    openedScalar.clear();
-    triples.clear();
+
+    vector<T>().swap(sharesEc);
+    vector<V>().swap(sharesScalar);
+    vector<typename T::open_type>().swap(openedEc);
+    vector<typename V::open_type>().swap(openedScalar);
+    vector<array<V, 3>>().swap(triples);
 }
 
 template<class T, class V>
@@ -140,12 +141,6 @@ void EcBeaver<T, V>::finalize_mul(int count, thread_pool &pool, vector<T>& resve
     auto mynum_ = P.my_num();
     for (int i = 0; i < count; i++)
     {
-        // typename V::open_type maskedScalar; // epsilon
-        // typename T::open_type maskedEc; // D
-
-        // V& a = (*triple)[0];
-        // T C = (*triple)[2];
-        // T B = (*triple)[1];
 
         auto triplet = triple;
 

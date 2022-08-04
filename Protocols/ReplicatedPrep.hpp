@@ -260,7 +260,7 @@ void BufferPrep<T>::buffer_inverses(true_type)
     for (size_t i = 0; i < c.size(); i++)
         if (c_open[i] != 0)
             inverses.push_back({{triples[i][0], triples[i][1] / c_open[i]}});
-    triples.clear();
+    vector<array<T, 3>>().swap(triples);
     if (inverses.empty())
         throw runtime_error("products were all zero");
     MC.Check(P);
@@ -1190,6 +1190,14 @@ template<class T>
 void BufferPrep<T>::shrink_to_fit()
 {
     triples.shrink_to_fit();
+}
+
+template<class T>
+void BufferPrep<T>::clear_buffer()
+{
+    vector<vector<InputTuple<T>>>().swap(inputs);
+    vector<array<T, 3>>().swap(triples);;
+    vector<array<T, 2>>().swap(inverses);
 }
 
 template<class T>
