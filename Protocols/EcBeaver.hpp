@@ -140,24 +140,27 @@ void EcBeaver<T, V>::finalize_mul(int count, thread_pool &pool, vector<T>& resve
     auto mynum_ = P.my_num();
     for (int i = 0; i < count; i++)
     {
-        typename V::open_type maskedScalar; // epsilon
-        typename T::open_type maskedEc; // D
+        // typename V::open_type maskedScalar; // epsilon
+        // typename T::open_type maskedEc; // D
 
-        V& a = (*triple)[0];
-        T C = (*triple)[2];
-        T B = (*triple)[1];
-        maskedScalar = *itScalar;
-        maskedEc = *itEc;
+        // V& a = (*triple)[0];
+        // T C = (*triple)[2];
+        // T B = (*triple)[1];
+
+        auto triplet = triple;
+
+        auto maskedScalar = itScalar;
+        auto maskedEc = itEc;
         auto alphai = MCec->get_alphai();
 
-        pool.push_task([&resvec, i, maskedScalar, B, C, a, maskedEc, mynum_, alphai]{
-            T tmpres = C;
+        pool.push_task([&resvec, i, maskedScalar, triplet, maskedEc, mynum_, alphai]{
+            T tmpres = (*triplet)[2];
             T tmpec = {};
-            ecscalarmulshare(maskedScalar, B, tmpec);
+            ecscalarmulshare(*maskedScalar, (*triplet)[1], tmpec);
             tmpres += tmpec;
-            ecscalarmulshare(a, maskedEc, tmpec);
+            ecscalarmulshare((*triplet)[0], *maskedEc, tmpec);
             tmpres += tmpec;
-            tmpres += T::constant(maskedEc * maskedScalar, mynum_, alphai);
+            tmpres += T::constant(*maskedEc * *maskedScalar, mynum_, alphai);
             resvec[i] = tmpres;
         });
 

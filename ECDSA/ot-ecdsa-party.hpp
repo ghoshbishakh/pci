@@ -145,6 +145,15 @@ void run(int argc, const char** argv)
             "-I", // Flag token.
             "--inputs" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            1, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Intersection Size", // Help description.
+            "-O", // Flag token.
+            "--common" // Flag token.
+    );
     opt.parse(argc, argv);
     int INPUTSIZE = 10;
     if (opt.get("-I")->isSet){
@@ -157,6 +166,12 @@ void run(int argc, const char** argv)
     
 
     int COMMON = 1;
+    if (opt.get("-O")->isSet){
+        opt.get("-O")->getInt(COMMON);
+    }
+    cout << ">>>> Common elements," << COMMON << "," << endl;
+
+
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
 
@@ -346,6 +361,10 @@ void run(int argc, const char** argv)
         r_inputs[P.my_num()].push_back(pciinputs[i].signature.R);
         rInput.add_from_all(pciinputs[i].signature.R);
     }
+
+    // clear unused vectors
+    vector<PCIInput>().swap(pciinputs);
+
     rInput.exchange();
     for (int i = 0; i < INPUTSIZE; i++)
     {
@@ -487,19 +506,11 @@ void run(int argc, const char** argv)
 
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
-            P256Element::Scalar or0 = open_rands[0];
-            P256Element::Scalar or1 = open_rands[1];
-            ecShare c_valid0i = c_valid[0][i];
-            ecShare c_valid1j = c_valid[1][j];
-            ecShare Pk_share0i = Pk_share[0][i];
-            ecShare Pk_share1j = Pk_share[1][j];
-
-            pool.push_task([&c_final, or0, or1, c_valid0i, c_valid1j, Pk_share0i, Pk_share1j, i,j, INPUTSIZE]{
-            c_final[i*INPUTSIZE + j]  = ((Pk_share0i - Pk_share1j) + 
-            mul_ec_scalar(c_valid0i, or1) + 
-            mul_ec_scalar(c_valid1j, or1));
+            pool.push_task([&c_final, &open_rands, &c_valid, &Pk_share, i,j, INPUTSIZE]{
+            c_final[i*INPUTSIZE + j]  = ((Pk_share[0][i] - Pk_share[1][j]) + 
+            mul_ec_scalar(c_valid[0][i], open_rands[1]) + 
+            mul_ec_scalar(c_valid[1][j], open_rands[1]));
             });
-
         }
     }
     pool.wait_for_tasks();
@@ -523,19 +534,17 @@ void run(int argc, const char** argv)
     }
 
     // clear unused vectors
+    vector<scalarShare>().swap(myrandomshares);
+
+    // clear unused vectors
     c_final.clear();
 
-    cout << "EXCHANGE" << endl;
-
     ecprotocol.exchange();
-    cout << "EXCHANGE DONE" << endl;
 
     ecprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c_final);
 
     ecprotocol.init_mul();
 
-    // clear unused vectors
-    vector<scalarShare>().swap(myrandomshares);
 
     auto tcrand = timer.elapsed();
     cout << ">>>> Computing C' * rand," << (tcrand - tc2) * 1e3 << ", ms" << endl;
@@ -588,6 +597,8 @@ void run(int argc, const char** argv)
             }
         }
     }
+
+
     auto topenres = timer.elapsed();
     cout << ">>>> Open result," << (topenres - tmc1) * 1e3 << ", ms" << endl;
 
