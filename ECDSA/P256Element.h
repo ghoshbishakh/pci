@@ -34,6 +34,7 @@ public:
     static void init();
 
     P256Element();
+    ~P256Element();
     P256Element(const P256Element& other);
     P256Element(const Scalar& other);
     P256Element(word other);

@@ -24,6 +24,11 @@ P256Element::P256Element()
     assert(EC_POINT_set_to_infinity(curve, point) != 0);
 }
 
+P256Element::~P256Element()
+{
+    EC_POINT_free(point);
+}
+
 P256Element::P256Element(const Scalar& other) :
         P256Element()
 {
@@ -103,6 +108,7 @@ void P256Element::pack(octetStream& os) const
     assert(length != 0);
     os.store_int(length, 8);
     os.append(buffer, length);
+    delete[] buffer;
 }
 
 void P256Element::unpack(octetStream& os)
@@ -165,12 +171,13 @@ void P256Element::randomize(PRNG& G, int n)
     (void) n;
     P256Element::Scalar newscalar;
     newscalar.randomize(G, n);
-    point = P256Element(newscalar).point;
+    assert(EC_POINT_copy(point, P256Element(newscalar).point) != 0);
 }
 
 void P256Element::input(istream& s,bool human)
 { 
     P256Element::Scalar newscalar;
     newscalar.input(s,human); 
-    point = P256Element(newscalar).point;
+    assert(EC_POINT_copy(point, P256Element(newscalar).point) != 0);
+
 }
