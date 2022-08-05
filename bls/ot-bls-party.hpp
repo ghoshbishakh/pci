@@ -225,7 +225,7 @@ void run(int argc, const char** argv)
     int COMMON = 1;
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
-    OnlineOptions::singleton.batch_size = INPUTSIZE * 10;
+    OnlineOptions::singleton.batch_size = INPUTSIZE * 4;
 
     // Setup network with two players
     Names N(opt, argc, argv, 2);
@@ -327,11 +327,18 @@ void run(int argc, const char** argv)
             cout << pciinputs[i].Pk << pciinputs[i].signature << endl;
         }
 
+        // free unused vector
+        vector<PCIBLSInput>().swap(generatedinputsA);
+
 
         clearInput.reset_all();
         for (int i = secondPlayerInputIdx; i < TOTAL_GENERATED_INPUTS; i++){
             clearInput.add_mine(generatedinputsB[i]);
         }
+
+        // free unused vector
+        vector<PCIBLSInput>().swap(generatedinputsB);
+
         clearInput.exchange();
     }
 
@@ -491,6 +498,12 @@ void run(int argc, const char** argv)
         gt_input.add_from_all(E_set[i]);
         gt_input.add_from_all(E_set_[i]);
     }
+
+    // free unused vector
+    vector<GtElement>().swap(E_set);
+    vector<GtElement>().swap(E_set_);
+    vector<PCIBLSInput>().swap(pciinputs);
+
     g1_input.exchange();
     g2_input.exchange();
     gt_input.exchange();
@@ -559,6 +572,12 @@ void run(int argc, const char** argv)
     for (int i = 0; i < 3; i++){
         output.prepare_open(to_open_rands[i]);
     }
+
+
+    // free unused vector
+    vector<scalarShare>().swap(to_open_rands);
+
+
     output.exchange(P);
     for (int i = 0; i < 3; i++){
         open_rands.push_back(output.finalize_open());
@@ -570,6 +589,7 @@ void run(int argc, const char** argv)
 
 
     cout << "------  generate " << (INPUTSIZE * INPUTSIZE) << " randoms ------" << endl;
+    OnlineOptions::singleton.batch_size = INPUTSIZE * INPUTSIZE;
 
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
@@ -590,16 +610,10 @@ void run(int argc, const char** argv)
     for (int i = 0; i < INPUTSIZE; i++)
     {
         for (int j = 0; j < INPUTSIZE; j++){
-            gtShare e01 = E_share[0][i];
-            gtShare e_1j = E_share_[1][j];
-            gtShare e1j = E_share[1][j];
-            gtShare e_01 = E_share_[0][i];
-            GtElement::Scalar or0 = open_rands[0];
-
-            pool.push_task([&c3, e01, e_1j, e1j, e_01, or0, i,j, INPUTSIZE]{
-                c3[i*INPUTSIZE + j] = (e01 - e_1j) + exp_gt_scalar((e1j - e_01), or0);
+            pool.push_task([&c3, &E_share, &E_share_, &open_rands, i,j, INPUTSIZE]{
+                c3[i*INPUTSIZE + j] = (E_share[0][i] - E_share_[1][j]) + exp_gt_scalar((E_share[1][j] - E_share_[0][i]), open_rands[0]);
                 });
-                // c3[i*INPUTSIZE + j] = (E_share[0][i] - E_share_[1][j]) + exp_gt_scalar((E_share[1][j] - E_share_[0][i]), open_rands[0]);
+                // c3[i*INPUTSIZE + j] = (e01 - e_1j) + exp_gt_scalar((e1j - e_01), or0);
 
         }
     }
@@ -613,19 +627,19 @@ void run(int argc, const char** argv)
     for (int i = 0; i < INPUTSIZE; i++)
     {
         for (int j = 0; j < INPUTSIZE; j++){
-            gtShare c3item = c3[(INPUTSIZE*i) + j];
-            gtShare c1item = c1[i];
-            gtShare c2item = c2[j];
-            GtElement::Scalar or1 = open_rands[1];
-            GtElement::Scalar or2 = open_rands[2];
-            pool.push_task([&c4, c1item, c2item, c3item, or1, or2, open_rands, i,j, INPUTSIZE]{
-                c4[(INPUTSIZE*i) + j] = c3item + exp_gt_scalar(c1item, or1) + exp_gt_scalar(c2item, or2);
+            pool.push_task([&c4, &c1, &c2, &c3, &open_rands, i,j, INPUTSIZE]{
+                    c4[(INPUTSIZE*i) + j] = c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]);
                 });
-                // c4[(INPUTSIZE*i) + j] = c3[(INPUTSIZE*i) + j] + exp_gt_scalar(c1[i], open_rands[1]) + exp_gt_scalar(c2[j], open_rands[2]);
-
+                // c4[(INPUTSIZE*i) + j] = c3item + exp_gt_scalar(c1item, or1) + exp_gt_scalar(c2item, or2);
         }
     }
     pool.wait_for_tasks();
+
+    // free unused vector
+    vector<GtElement::Scalar>().swap(open_rands);
+    vector<gtShare>().swap(c1);
+    vector<gtShare>().swap(c2);
+    vector<gtShare>().swap(c3);
 
 
     auto tc4 = timer.elapsed();
@@ -640,6 +654,12 @@ void run(int argc, const char** argv)
             gtprotocol.prepare_scalar_mul(myrandomshares[(INPUTSIZE*i) + j], c4[(INPUTSIZE*i) + j]);
         }
     }
+
+
+    // free unused vector
+    vector<scalarShare>().swap(myrandomshares);
+    vector<gtShare>().swap(c4);
+
     gtprotocol.exchange();
     gtprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c4_rand);
 
@@ -659,6 +679,10 @@ void run(int argc, const char** argv)
             gt_output.prepare_open(c4_rand[(INPUTSIZE*i) + j]);
         }
     }
+
+    // free unused vector
+    vector<gtShare>().swap(c4_rand);
+
     gt_output.exchange(P);
     cout << "-- exchanging c4_rand complete --" << endl;
 

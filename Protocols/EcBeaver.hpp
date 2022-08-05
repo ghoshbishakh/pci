@@ -139,6 +139,8 @@ void EcBeaver<T, V>::finalize_mul(int count, thread_pool &pool, vector<T>& resve
 {
     resvec.resize(count);
     auto mynum_ = P.my_num();
+    auto alphai = MCec->get_alphai();
+    
     for (int i = 0; i < count; i++)
     {
 
@@ -146,7 +148,6 @@ void EcBeaver<T, V>::finalize_mul(int count, thread_pool &pool, vector<T>& resve
 
         auto maskedScalar = itScalar;
         auto maskedEc = itEc;
-        auto alphai = MCec->get_alphai();
 
         pool.push_task([&resvec, i, maskedScalar, triplet, maskedEc, mynum_, alphai]{
             T tmpres = (*triplet)[2];

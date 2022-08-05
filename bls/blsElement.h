@@ -45,6 +45,7 @@ public:
     void print_point();
 
     GtElement();
+    ~GtElement();
     GtElement(gt_t other, bool distinguisher);
     GtElement(const GtElement& other);
     GtElement(const Scalar& other);
@@ -110,6 +111,7 @@ public:
     void print_point();
 
     G1Element();
+    ~G1Element();
     G1Element(const G1Element& other);
     G1Element(const Scalar& other);
     G1Element(g1_t other, bool distinguisher);
@@ -181,6 +183,7 @@ public:
     void print_point();
 
     G2Element();
+    ~G2Element();
     G2Element(const G2Element& other);
     G2Element(const Scalar& other);
     G2Element(word other);

@@ -48,6 +48,11 @@ GtElement::GtElement()
     gt_set_unity(gtpoint);
 }
 
+GtElement::~GtElement()
+{
+    gt_free(gtpoint);
+}
+
 GtElement::GtElement(const Scalar& other) :
         GtElement()
 {
@@ -94,21 +99,6 @@ GtElement& GtElement::operator =(const GtElement& other)
     return *this;
 }
 
-// void GtElement::check()
-// {
-//     assert(EC_POINT_is_on_curve(curve, point, 0) == 1);
-// }
-
-// GtElement::Scalar GtElement::x() const
-// {
-//     BIGNUM* x = BN_new();
-//     assert(EC_POINT_get_affine_coordinates_GFp(curve, point, x, 0, 0) != 0);
-//     char* xx = BN_bn2dec(x);
-//     Scalar res((bigint(xx)));
-//     OPENSSL_free(xx);
-//     BN_free(x);
-//     return res;
-// }
 
 GtElement GtElement::operator +(const GtElement& other) const
 {
@@ -254,26 +244,11 @@ GtElement& GtElement::operator +=(const GtElement& other)
     return *this;
 }
 
-// GtElement& GtElement::operator /=(const Scalar& other)
-// {
-//     *this = *this * other.invert();
-//     return *this;
-// }
-
 bool GtElement::operator !=(const GtElement& other) const
 {
     return not (*this == other);
 }
 
-// octetStream GtElement::hash(size_t n_bytes) const
-// {
-//     octetStream os;
-//     pack(os);
-//     auto res = os.hash();
-//     assert(n_bytes >= res.get_length());
-//     res.resize_precise(n_bytes);
-//     return res;
-// }
 
 void GtElement::randomize(PRNG& G, int n)
 {
@@ -316,6 +291,11 @@ G1Element::G1Element()
     g1_null(g1point);
     g1_new(g1point);
     g1_set_infty(g1point);
+}
+
+G1Element::~G1Element()
+{
+    g1_free(g1point);
 }
 
 G1Element::G1Element(const Scalar& other) :
@@ -633,6 +613,12 @@ G2Element::G2Element()
     g2_new(g2point);
     g2_set_infty(g2point);
 }
+
+G2Element::~G2Element()
+{
+    g2_free(g2point);
+}
+
 
 G2Element::G2Element(const Scalar& other) :
         G2Element()
