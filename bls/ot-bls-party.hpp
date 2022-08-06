@@ -545,6 +545,9 @@ void run(int argc, const char** argv)
         tmp = tmp - E_share[1][i];
         c2.push_back(tmp);
     }
+    vector<g1Share>().swap(S_share[0]);
+    vector<g1Share>().swap(S_share[1]);
+
 
     vector<gtShare> c3;
     vector<gtShare> c4;
@@ -619,6 +622,11 @@ void run(int argc, const char** argv)
     }
     pool.wait_for_tasks();
 
+    vector<gtShare>().swap(E_share[0]);
+    vector<gtShare>().swap(E_share[1]);
+    vector<gtShare>().swap(E_share_[0]);
+    vector<gtShare>().swap(E_share_[1]);
+
     auto tc3 = timer.elapsed();
     cout << ">>>> C3 computation," << (tc3 - tprand) * 1e3 << ", ms" << endl;
 
@@ -662,6 +670,7 @@ void run(int argc, const char** argv)
 
     gtprotocol.exchange();
     gtprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c4_rand);
+    gtprotocol.init_mul();
 
     auto tc4_rand = timer.elapsed();
     cout << ">>>> C4 * private rand computation," << (tc4_rand - tc4) * 1e3 << ", ms" << endl;
