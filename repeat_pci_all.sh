@@ -1,0 +1,36 @@
+#!/bin/bash
+party=${1:-0}
+repeat=${2:-3}
+target=${3:-pci_all_results}
+
+set -x
+
+mkdir -p $target
+
+declare -a arr=(1 10 20 50 100)
+
+for ((i=0; i<=repeat; i++));
+do
+   for claims in "${arr[@]}"
+   do
+      sleep 5
+      echo "$claims"
+      ./mascot-ecdsa-pciall.x -p ${party} -I 100 -K ${claims} -ip pci_ip.txt > $target/result_ecdsa_p${party}_${claims}_inputs_run_${i}.txt 2>&1
+      cat $target/result_ecdsa_p${party}_${claims}_claims_run_${i}.txt
+   done
+done
+
+
+for ((i=0; i<=repeat; i++));
+do
+   for claims in "${arr[@]}"
+   do
+      sleep 5
+      echo "$claims"
+      ./mascot-bls-party.x -p ${party} -I 100 -K ${claims} -ip pci_ip.txt > $target/result_${protocol}_p${party}_${claims}_inputs_run_${i}.txt 2>&1
+      cat $target/result_ecdsa_p${party}_${claims}_claims_run_${i}.txt
+   done
+done
+
+
+set +x

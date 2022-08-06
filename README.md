@@ -25,19 +25,19 @@ mkdir -p relic-target
 cd relic-target
 # For RELIC 0.5.0: ../preset/x64-pbc-bls381.sh ../
 ../preset/x64-pbc-bls12-381.sh ../
-make -j 40
+make -j 8
 sudo make install
 ```
 
 **Build pci:**
 ```
-git clone git@github.com:ghoshbishakh/pci.git
+git clone LINKTOPCIREPO
 cd pci
 git checkout pci_final
 make -j8 tldr
-make bls -j 40
-make ecdsa -j 40
-make ecdsa-pciall -j 40
+make bls -j 8
+make ecdsa -j 8
+make ecdsa-pciall -j 8
 ```
 
 ## Running benchmarks
@@ -56,7 +56,7 @@ Run the two parties:
 
 To use different hosts, edit the `pci_ip.txt` file. Then add the additional option  `-ip pci_ip.txt` to the above commands.
 
-For ECDSA use the executable `./mascot-bls-party.x`
+For ECDSA use the executable `./mascot-ecdsa-party.x`
 
 
 ----
