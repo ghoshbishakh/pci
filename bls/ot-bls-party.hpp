@@ -198,7 +198,7 @@ void run(int argc, const char** argv)
             1, // Number of args expected.
             0, // Delimiter if expecting multiple args.
             "Number of Claims", // Help description.
-            "-C", // Flag token.
+            "-K", // Flag token.
             "--claims" // Flag token.
     );
 
@@ -212,8 +212,8 @@ void run(int argc, const char** argv)
     }
 
     int CLAIMS = 1;
-    if (opt.get("-C")->isSet){
-        opt.get("-C")->getInt(CLAIMS);
+    if (opt.get("-K")->isSet){
+        opt.get("-K")->getInt(CLAIMS);
     }
 
     cout << ">>>> Input size (each party)," << INPUTSIZE << "," << endl;
