@@ -11,6 +11,7 @@ using namespace std;
 #include "Networking/Player.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Tools/time-func.h"
+#include "../bls/thread_pool.hpp"
 
 
 /* The MAX number of things we will partially open before running
@@ -100,12 +101,16 @@ class Tree_MAC_Check : public TreeSum<typename U::open_type>, public MAC_Check_B
 template<class U>
 class MAC_Check_ : public Tree_MAC_Check<U>
 {
+thread_pool *thispool;
 public:
   MAC_Check_(const typename U::mac_key_type::Scalar& ai, int opening_sum = 10,
       int max_broadcast = 10, int send_player = 0);
+  MAC_Check_(thread_pool *pool, const typename U::mac_key_type::Scalar& ai, int opening_sum = 10,
+    int max_broadcast = 10, int send_player = 0);
   virtual ~MAC_Check_() {}
 
   virtual void Check(const Player& P);
+  virtual void Check_parallel(thread_pool &pool, const Player& P);
 };
 
 template<class T>
@@ -170,6 +175,7 @@ public:
   // legacy interface
   Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai, Names& Nms, int thread_num);
   Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai);
+  Direct_MAC_Check(thread_pool *pool, const typename T::mac_key_type::Scalar& ai);
   ~Direct_MAC_Check();
 
   void init_open(const Player& P, int n = 0);

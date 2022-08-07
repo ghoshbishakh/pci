@@ -35,6 +35,15 @@ MAC_Check_<U>::MAC_Check_(const typename U::mac_key_type::Scalar& ai, int openin
     int max_broadcast, int send_player) :
     Tree_MAC_Check<U>(ai, opening_sum, max_broadcast, send_player)
 {
+  thispool = NULL;
+}
+
+template<class U>
+MAC_Check_<U>::MAC_Check_(thread_pool *pool, const typename U::mac_key_type::Scalar& ai, int opening_sum,
+    int max_broadcast, int send_player) :
+    Tree_MAC_Check<U>(ai, opening_sum, max_broadcast, send_player)
+{
+  thispool = pool;
 }
 
 template<class U>
@@ -114,10 +123,115 @@ void Tree_MAC_Check<U>::AddToCheck(const U& share, const T& value, const Player&
 }
 
 
+template<class U>
+void MAC_Check_<U>::Check_parallel(thread_pool &pool, const Player& P)
+{
+  cout << "Macheck parallel" << endl;
+  assert(U::mac_type::invertible);
+  check_field_size<typename U::mac_type>();
+
+  if (this->WaitingForCheck() == 0)
+    return;
+
+  //cerr << "In MAC Check : " << popen_cnt << endl;
+
+  auto& vals = this->vals;
+  auto& macs = this->macs;
+  auto& popen_cnt = this->popen_cnt;
+  assert(int(macs.size()) <= popen_cnt);
+
+  if (popen_cnt < 10)
+    {
+      // no random combination with few values
+      vector<typename U::mac_type> deltas;
+      Bundle<octetStream> bundle(P);
+      for (int i = 0; i < popen_cnt; i++)
+        {
+          deltas.push_back(vals[i] * this->alphai - macs[i]);
+          deltas.back().pack(bundle.mine);
+        }
+      this->timers[COMMIT].start();
+      Commit_And_Open_(bundle, P);
+      this->timers[COMMIT].stop();
+      for (auto& delta : deltas)
+        {
+          for (auto& os : bundle)
+            if (&os != &bundle.mine)
+              delta += os.get<typename U::mac_type>();
+          if (not delta.is_zero())
+            throw mac_fail();
+        }
+    }
+  else
+    {
+      // check random combination
+      octet seed[MPSPDZ_SEED_SIZE];
+      this->timers[SEED].start();
+      Create_Random_Seed(seed,P,MPSPDZ_SEED_SIZE);
+      this->timers[SEED].stop();
+      PRNG G;
+      G.SetSeed(seed);
+      auto gptr = &G;
+
+      U sj;
+      typename U::mac_type a,gami,temp;
+      typename U::mac_type::Scalar h;
+      vector<typename U::mac_type> tau(P.num_players());
+      a.assign_zero();
+      gami.assign_zero();
+      for (int i=0; i<popen_cnt; i++)
+      {
+        auto thisval = &vals[i];
+        auto thismac = &macs[i];
+        typename U::mac_type::Scalar th;
+        th.almost_randomize(*gptr);
+        pool.push_task([th, thisval, thismac]{
+          *thisval = (*thisval) * th;
+          *thismac = (*thismac) * th;
+        });
+      }
+
+      pool.wait_for_tasks();
+      for (int i=0; i<popen_cnt; i++)
+      {
+        a = (a + vals[i]);
+        gami = (gami + macs[i]);
+      }
+      temp = this->alphai * a;
+      tau[P.my_num()] = (gami - temp);
+
+      //cerr << "\tCommit and Open" << endl;
+      this->timers[COMMIT].start();
+      Commit_And_Open(tau,P);
+      this->timers[COMMIT].stop();
+
+      //cerr << "\tFinal Check" << endl;
+
+      typename U::mac_type t;
+      t.assign_zero();
+      for (int i=0; i<P.num_players(); i++)
+        { t += tau[i]; }
+      if (!t.is_zero()) { throw mac_fail(); }
+    }
+
+  vals.erase(vals.begin(), vals.begin() + popen_cnt);
+  macs.erase(macs.begin(), macs.begin() + popen_cnt);
+
+  popen_cnt=0;
+}
+
+
 
 template<class U>
 void MAC_Check_<U>::Check(const Player& P)
 {
+  cout << "calling normal maccheck" << endl;
+  if(thispool != NULL){
+    cout << "calling PARALLEL maccheck" << endl;
+    Check_parallel((*thispool), P);
+    return;
+  }
+
   assert(U::mac_type::invertible);
   check_field_size<typename U::mac_type>();
 
@@ -317,6 +431,14 @@ Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai
 template<class T>
 Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai) :
     MAC_Check_<T>(ai)
+{
+  open_counter = 0;
+}
+
+
+template<class T>
+Direct_MAC_Check<T>::Direct_MAC_Check(thread_pool *pool, const typename T::mac_key_type::Scalar& ai) :
+    MAC_Check_<T>(pool, ai)
 {
   open_counter = 0;
 }
