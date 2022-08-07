@@ -52,6 +52,8 @@ public:
     void init_mul();
     void prepare_mul(const T& x, const T& y, int n = -1);
     void prepare_scalar_mul(const V& x, const T& Y, int n = -1);
+    void prepare_scalar_mul_parallel(thread_pool &pool, const vector<V>& x, const vector<T>& Y, int inputsize, int n = -1);
+
     void exchange();
     T finalize_mul(int n = -1);
     void finalize_mul(int count, thread_pool &pool, vector<T>& resvec);

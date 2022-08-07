@@ -656,12 +656,13 @@ void run(int argc, const char** argv)
 
     cout << "-- private random * c4s --" << endl;
     gtprotocol.init_mul();
-    for (int i = 0; i < INPUTSIZE; i++)
-    {
-        for (int j = 0; j < INPUTSIZE; j++){
-            gtprotocol.prepare_scalar_mul(myrandomshares[(INPUTSIZE*i) + j], c4[(INPUTSIZE*i) + j]);
-        }
-    }
+    // for (int i = 0; i < INPUTSIZE; i++)
+    // {
+    //     for (int j = 0; j < INPUTSIZE; j++){
+    //         gtprotocol.prepare_scalar_mul(myrandomshares[(INPUTSIZE*i) + j], c4[(INPUTSIZE*i) + j]);
+    //     }
+    // }
+    gtprotocol.prepare_scalar_mul_parallel(pool, myrandomshares, c4, INPUTSIZE * INPUTSIZE);
 
 
     // free unused vector

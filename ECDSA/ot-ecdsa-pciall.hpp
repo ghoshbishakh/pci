@@ -190,7 +190,7 @@ void run(int argc, const char** argv)
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
 
-    OnlineOptions::singleton.batch_size = 10 * INPUTSIZE;
+    OnlineOptions::singleton.batch_size = 2 * INPUTSIZE;
     thread_pool pool;
 
 
@@ -578,6 +578,7 @@ void run(int argc, const char** argv)
     vector<scalarShare> myrandomshares;
     scalarShare __;
 
+    OnlineOptions::singleton.batch_size = 2;
     for (int i = 0; i < 2; i++){
             to_open_rands.push_back({});
             preprocessing.get_two(DATA_INVERSE, to_open_rands.back(), __);
@@ -599,6 +600,7 @@ void run(int argc, const char** argv)
 
 
     cout << "------  generate " << (INPUTSIZE * INPUTSIZE) << " randoms ------" << endl;
+    OnlineOptions::singleton.batch_size = INPUTSIZE * INPUTSIZE;
 
     for (int i = 0; i < INPUTSIZE; i++){
         for (int j = 0; j < INPUTSIZE; j++){
@@ -683,11 +685,8 @@ void run(int argc, const char** argv)
     // randomize c_final
     ecprotocol.init_mul();
 
-    for (int i = 0; i < INPUTSIZE; i++){
-        for (int j = 0; j < INPUTSIZE; j++){
-            ecprotocol.prepare_scalar_mul(myrandomshares[INPUTSIZE*i + j], c_final[INPUTSIZE*i + j]);;
-        }
-    }
+    ecprotocol.prepare_scalar_mul_parallel(pool, myrandomshares, c_final, INPUTSIZE * INPUTSIZE);;
+
     ecprotocol.exchange();
     ecprotocol.finalize_mul(INPUTSIZE*INPUTSIZE, pool, c_final_randomized);
 

@@ -66,6 +66,30 @@ void EcBeaver<T, V>::prepare_scalar_mul(const V& x, const T& Y, int n)
     sharesEc.push_back(Y - triple[1]);
 }
 
+
+template<class T, class V>
+void EcBeaver<T, V>::prepare_scalar_mul_parallel(thread_pool &pool, const vector<V>& x, const vector<T>& Y, int inputsize, int n)
+{
+    (void) n;
+    sharesScalar.resize(inputsize);
+    sharesEc.resize(inputsize);
+
+    for (int i = 0; i < inputsize; i++){
+        triples.push_back({{}});
+        auto& triple = triples.back();
+        triple = prep->get_triple(n);
+        auto sharesScalarHere = &sharesScalar[i];
+        auto sharesEcHere = &sharesEc[i];
+
+        pool.push_task([triple, sharesScalarHere, sharesEcHere, &x, &Y, i]{
+            *sharesScalarHere = x[i] - triple[0];
+            *sharesEcHere = Y[i] - triple[1];
+        });
+    }
+
+    pool.wait_for_tasks();
+}
+
 // [a]<G>
 template<class T, class V>
 void EcBeaver<T, V>::ecscalarmulshare(typename T::open_type::Scalar multiplier, T pointshare, T& result){

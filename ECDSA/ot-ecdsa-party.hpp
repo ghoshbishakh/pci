@@ -538,11 +538,8 @@ void run(int argc, const char** argv)
 
     ecprotocol.init_mul();
 
-    for (int i = 0; i < INPUTSIZE; i++){
-        for (int j = 0; j < INPUTSIZE; j++){
-            ecprotocol.prepare_scalar_mul(myrandomshares[INPUTSIZE*i + j], c_final[INPUTSIZE*i + j]);
-        }
-    }
+    ecprotocol.prepare_scalar_mul_parallel(pool, myrandomshares, c_final, INPUTSIZE * INPUTSIZE);
+
 
     // clear unused vectors
     vector<scalarShare>().swap(myrandomshares);
