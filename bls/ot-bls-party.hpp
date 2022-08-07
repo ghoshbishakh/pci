@@ -420,7 +420,7 @@ void run(int argc, const char** argv)
     typename scalarShare::mac_key_type mac_key;
     scalarShare::read_or_generate_mac_key("", P, mac_key);
 
-    typename scalarShare::Direct_MC output(mac_key);
+    typename scalarShare::Direct_MC output(&pool, mac_key);
 
     typename scalarShare::LivePrep preprocessing(0, usage);
     
@@ -437,7 +437,7 @@ void run(int argc, const char** argv)
     typename g1Share::mac_key_type g1_mac_key;
     g1Share::read_or_generate_mac_key("", P, g1_mac_key);
 
-    typename g1Share::Direct_MC g1_output(output.get_alphai());
+    typename g1Share::Direct_MC g1_output(&pool, output.get_alphai());
     
     typename g1Share::Input g1_input(g1_output, g1_preprocessing, P);
 
@@ -469,7 +469,7 @@ void run(int argc, const char** argv)
     gtShare::read_or_generate_mac_key("", P, gt_mac_key);
 
 
-    typename gtShare::Direct_MC gt_output(output.get_alphai());
+    typename gtShare::Direct_MC gt_output(&pool, output.get_alphai());
     
 
     typename gtShare::Input gt_input(gt_output, gt_preprocessing, P);

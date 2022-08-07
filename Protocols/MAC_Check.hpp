@@ -126,7 +126,7 @@ void Tree_MAC_Check<U>::AddToCheck(const U& share, const T& value, const Player&
 template<class U>
 void MAC_Check_<U>::Check_parallel(thread_pool &pool, const Player& P)
 {
-  cout << "Macheck parallel" << endl;
+  // cout << "Macheck parallel" << endl;
   assert(U::mac_type::invertible);
   check_field_size<typename U::mac_type>();
 
@@ -225,9 +225,9 @@ void MAC_Check_<U>::Check_parallel(thread_pool &pool, const Player& P)
 template<class U>
 void MAC_Check_<U>::Check(const Player& P)
 {
-  cout << "calling normal maccheck" << endl;
+  // cout << "calling normal maccheck" << endl;
   if(thispool != NULL){
-    cout << "calling PARALLEL maccheck" << endl;
+    // cout << "calling PARALLEL maccheck" << endl;
     Check_parallel((*thispool), P);
     return;
   }

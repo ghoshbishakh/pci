@@ -379,7 +379,7 @@ void run(int argc, const char** argv)
     typename scalarShare::mac_key_type mac_key;
     scalarShare::read_or_generate_mac_key("", P, mac_key);
 
-    typename scalarShare::Direct_MC output(mac_key);
+    typename scalarShare::Direct_MC output(&pool, mac_key);
 
     typename scalarShare::LivePrep preprocessing(0, usage);
     
@@ -454,7 +454,7 @@ void run(int argc, const char** argv)
     ecShare::read_or_generate_mac_key("", P, ec_mac_key);
 
 
-    typename ecShare::Direct_MC ec_output(output.get_alphai());
+    typename ecShare::Direct_MC ec_output(&pool, output.get_alphai());
     
     MascotEcPrep<ecShare, scalarShare> ec_preprocessing(usage, preprocessing);
 
