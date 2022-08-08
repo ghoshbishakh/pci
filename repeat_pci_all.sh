@@ -14,24 +14,16 @@ do
    for claims in "${arr[@]}"
    do
       sleep 5
-      echo "$claims"
+      echo "ECDSA - $claims"
       ./mascot-ecdsa-pciall.x -p ${party} -I 100 -K ${claims} -ip pci_ip.txt > $target/result_ecdsa_p${party}_${claims}_claims_run_${i}.txt 2>&1
       cat $target/result_ecdsa_p${party}_${claims}_claims_run_${i}.txt
-   done
-done
-
-
-for ((i=0; i<=repeat; i++));
-do
-   for claims in "${arr[@]}"
-   do
       sleep 5
-      echo "$claims"
+
+      echo "BLS - $claims"
       ./mascot-bls-party.x -p ${party} -I 100 -K ${claims} -ip pci_ip.txt > $target/result_bls_p${party}_${claims}_claims_run_${i}.txt 2>&1
       cat $target/result_bls_p${party}_${claims}_claims_run_${i}.txt
    done
 done
-
 
 set +x
 
