@@ -142,6 +142,24 @@ void ServerSocket::accept_clients()
       int consocket = accept(main_socket, (struct sockaddr *)&dest, (socklen_t*) &socksize);
       if (consocket<0) { error("set_up_socket:accept"); }
 
+      cout << "Setting server socket keepalive params" << endl;
+      int flags =1;
+      int fl = setsockopt(consocket, SOL_SOCKET, SO_KEEPALIVE, (void *)&flags, sizeof(flags));
+      if (fl<0) { error("ERROR: setsocketopt(), SO_KEEPALIVE"); };
+      
+      flags = 30;
+      fl = setsockopt(consocket, SOL_TCP, TCP_KEEPIDLE, (void *)&flags, sizeof(flags));
+      if (fl<0) { error("ERROR: setsocketopt(), TCP_KEEPIDLE"); };
+
+      flags = 10;
+      fl = setsockopt(consocket, SOL_TCP, TCP_KEEPCNT, (void *)&flags, sizeof(flags));
+      if (fl<0) { error("ERROR: setsocketopt(), TCP_KEEPCNT"); };
+
+      flags = 10;
+      fl = setsockopt(consocket, SOL_TCP, TCP_KEEPINTVL, (void *)&flags, sizeof(flags));
+      if (fl<0) { error("ERROR: setsocketopt(), TCP_KEEPINTVL"); };
+
+
       octetStream client_id;
       char buf[1];
       if (recv(consocket, buf, 1, MSG_PEEK | MSG_DONTWAIT) > 0)

@@ -311,12 +311,29 @@ void PlainPlayer::setup_sockets(const vector<string>& names,
     }
 
     for (int i = 0; i < nplayers; i++) {
-        // timeout of 5 minutes
+        // timeout of 30 minutes
         struct timeval tv;
-        tv.tv_sec = 300;
+        tv.tv_sec = 1800;
         tv.tv_usec = 0;
         int fl = setsockopt(sockets[i], SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval));
         if (fl<0) { error("set_up_socket:setsockopt");  }
+        // set keepalive params
+        cout << "Setting keepalive params for client socket" << endl;
+        int flags =1;
+        fl = setsockopt(sockets[i], SOL_SOCKET, SO_KEEPALIVE, (void *)&flags, sizeof(flags));
+        if (fl<0) { error("ERROR: setsocketopt(), SO_KEEPALIVE"); };
+        
+        flags = 30;
+        fl = setsockopt(sockets[i], SOL_TCP, TCP_KEEPIDLE, (void *)&flags, sizeof(flags));
+        if (fl<0) { error("ERROR: setsocketopt(), TCP_KEEPIDLE"); };
+
+        flags = 10;
+        fl = setsockopt(sockets[i], SOL_TCP, TCP_KEEPCNT, (void *)&flags, sizeof(flags));
+        if (fl<0) { error("ERROR: setsocketopt(), TCP_KEEPCNT"); };
+
+        flags = 10;
+        fl = setsockopt(sockets[i], SOL_TCP, TCP_KEEPINTVL, (void *)&flags, sizeof(flags));
+        if (fl<0) { error("ERROR: setsocketopt(), TCP_KEEPINTVL"); };
     }
 }
 
