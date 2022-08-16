@@ -97,8 +97,10 @@ inline void receive(int socket,octet *msg,size_t len)
           else
             { error("Receiving error - 1"); }
         }
-      else
-        throw closed_connection();
+      else {
+        // throw closed_connection();
+        perror("ERROR Receiving on socket, not throwing.");
+      }
     }
 }
 
