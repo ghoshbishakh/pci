@@ -201,6 +201,15 @@ void run(int argc, const char** argv)
             "-K", // Flag token.
             "--claims" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            1, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Intersection Size", // Help description.
+            "-O", // Flag token.
+            "--common" // Flag token.
+    );
 
     opt.parse(argc, argv);
     int INPUTSIZE = 10;
@@ -218,11 +227,14 @@ void run(int argc, const char** argv)
 
     cout << ">>>> Input size (each party)," << INPUTSIZE << "," << endl;
     cout << ">>>> Claims of each party," << CLAIMS << "," << endl;
-    
+    int COMMON = 1;
+    if (opt.get("-O")->isSet){
+        opt.get("-O")->getInt(COMMON);
+    }
+    cout << ">>>> Common elements," << COMMON << "," << endl;
     
     thread_pool pool;
 
-    int COMMON = 1;
     int TOTAL_GENERATED_INPUTS = INPUTSIZE*2 - COMMON;
     int secondPlayerInputIdx = INPUTSIZE - COMMON;
     OnlineOptions::singleton.batch_size = INPUTSIZE * 4;
