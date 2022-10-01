@@ -1,5 +1,18 @@
 # Private Certifier Intersection
 
+This repository contains the implementation of 'Private Certifier Intersection' protocols introduced in the paper: [https://eprint.iacr.org/2022/1302](https://eprint.iacr.org/2022/1302) [NDSS 2023]
+
+If you are using this codebase, please cite the following:
+
+```
+@inproceedings{ghosh2023pci,
+  title = {Private Certifier Intersection},
+  author = {Bishakh Chandra Ghosh and Sikhar Patranabis and Dhinakaran Vinayagamurthy and Venkatraman Ramakrishna and Krishnasuri Narayanam and Sandip Chakraborty},
+  booktitle={Network and Distributed System Security Symposium 2023 (NDSS 2023)},
+  year={2023}
+}
+```
+
 The implementation is based on the low level interface provided by `MPSPDZ`.
 The `MPSPDZ` README is also appended below.
 
@@ -31,7 +44,7 @@ sudo make install
 
 **Build pci:**
 ```
-git clone LINKTOPCIREPO
+git clone https://github.com/ghoshbishakh/pci
 cd pci
 git checkout pci_final
 make -j8 tldr
