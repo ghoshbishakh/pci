@@ -1,3 +1,5 @@
+<img width="400" alt="image" src="https://user-images.githubusercontent.com/5156787/193420994-5b1e75ca-4df3-4788-95a0-e277de56bbb1.png">
+
 # Private Certifier Intersection
 
 This repository contains the implementation of 'Private Certifier Intersection' protocols introduced in the paper: [https://eprint.iacr.org/2022/1302](https://eprint.iacr.org/2022/1302) [NDSS 2023]
