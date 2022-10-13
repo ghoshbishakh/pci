@@ -66,13 +66,13 @@ void Rep4RingPrep<T>::buffer_bits()
     Player& P = this->proc->P;
     if (P.my_num() % 2 == 0)
     {
-        os.append(G.get_seed(), SEED_SIZE);
+        os.append(G.get_seed(), MPSPDZ_SEED_SIZE);
         P.send_relative(1, os);
     }
     else
     {
         P.receive_relative(-1, os);
-        G.SetSeed(os.consume(SEED_SIZE));
+        G.SetSeed(os.consume(MPSPDZ_SEED_SIZE));
     }
 
     auto& protocol = this->proc->protocol;

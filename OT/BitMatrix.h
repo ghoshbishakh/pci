@@ -77,7 +77,7 @@ union square128 {
 };
 
 // allocator to counter GCC bug
-template <typename _Tp, int ALIGN>
+template <typename _Tp, int _ALIGN>
 class aligned_allocator : public std::allocator<_Tp>
 {
 public:
@@ -91,7 +91,7 @@ public:
 
     template<typename _Tp1>
     struct rebind
-    { typedef aligned_allocator<_Tp1, ALIGN> other; };
+    { typedef aligned_allocator<_Tp1, _ALIGN> other; };
 
     _Tp*
     allocate(size_t __n, const void* = 0)
@@ -100,7 +100,7 @@ public:
             std::__throw_bad_alloc();
 
         _Tp* res = 0;
-        int err = posix_memalign((void**)&res, ALIGN, __n * sizeof(_Tp));
+        int err = posix_memalign((void**)&res, _ALIGN, __n * sizeof(_Tp));
         if (err != 0 or res == 0)
             std::__throw_bad_alloc();
         return res;

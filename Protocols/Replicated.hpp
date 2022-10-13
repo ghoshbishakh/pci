@@ -45,7 +45,7 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 
 	shared_prngs[0].ReSeed();
 	octetStream os;
-	os.append(shared_prngs[0].get_seed(), SEED_SIZE);
+	os.append(shared_prngs[0].get_seed(), MPSPDZ_SEED_SIZE);
 	P.send_relative(1, os);
 	P.receive_relative(-1, os);
 	shared_prngs[1].SetSeed(os.get_data());

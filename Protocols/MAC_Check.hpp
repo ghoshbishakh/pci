@@ -156,9 +156,9 @@ void MAC_Check_<U>::Check(const Player& P)
   else
     {
       // check random combination
-      octet seed[SEED_SIZE];
+      octet seed[MPSPDZ_SEED_SIZE];
       this->timers[SEED].start();
-      Create_Random_Seed(seed,P,SEED_SIZE);
+      Create_Random_Seed(seed,P,MPSPDZ_SEED_SIZE);
       this->timers[SEED].stop();
       PRNG G;
       G.SetSeed(seed);
@@ -269,8 +269,8 @@ void MAC_Check_Z2k<T, U, V, W>::Check(const Player& P)
   cout << "Checking " << shares[0] << " " << this->vals[0] << " " << this->macs[0] << endl;
 #endif
 
-  octet seed[SEED_SIZE];
-  Create_Random_Seed(seed,P,SEED_SIZE);
+  octet seed[MPSPDZ_SEED_SIZE];
+  Create_Random_Seed(seed,P,MPSPDZ_SEED_SIZE);
   PRNG G;
   G.SetSeed(seed);
 

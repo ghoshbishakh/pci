@@ -47,7 +47,7 @@ void Reshare(Plaintext<T,FD,S>& m,Ciphertext& cc,
  
   // Step 5
   if (NewCiphertext)
-    { unsigned char sd[SEED_SIZE] = { 0 };
+    { unsigned char sd[MPSPDZ_SEED_SIZE] = { 0 };
       PRNG G;
       G.SetSeed(sd);
       Random_Coins rc(params);

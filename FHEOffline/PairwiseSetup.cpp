@@ -148,7 +148,7 @@ void PairwiseSetup<FD>::covert_key_generation(Player& P,
     {
         my_keys[i].generate(G[i]);
         my_keys[i].pk.pack(pks.mine);
-        commits[i].commit({SEED_SIZE, G[i].get_seed()});
+        commits[i].commit({MPSPDZ_SEED_SIZE, G[i].get_seed()});
     }
 
     P.Broadcast_Receive(pks);
@@ -158,7 +158,7 @@ void PairwiseSetup<FD>::covert_key_generation(Player& P,
 
     for (int i = 0; i < num_runs; i++)
         if (i != challenge)
-            commits[i].open({SEED_SIZE, G[i].get_seed()});
+            commits[i].open({MPSPDZ_SEED_SIZE, G[i].get_seed()});
 
     for (int i = 0; i < num_runs; i++)
     {

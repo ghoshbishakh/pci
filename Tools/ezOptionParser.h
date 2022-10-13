@@ -440,7 +440,7 @@ public:
   };
   
   enum TYPE { NOTYPE=0, S1, U1, S2, U2, S4, U4, S8, U8, F, D, T };
-  enum TYPE2 { NOTYPE2=0, INT8, UINT8, INT16, UINT16, INT32, UINT32, INT64, UINT64, FLOAT, DOUBLE, TEXT };
+  // enum TYPE2 { NOTYPE2=0, INT8, UINT8, INT16, UINT16, INT32, UINT32, INT64, UINT64, FLOAT, DOUBLE, TEXT };
     
   union {
     unsigned char *u1;
@@ -1317,7 +1317,7 @@ typedef std::map< int, ezOptionValidator* > ValidatorMap;
 class ezOptionParser {
 public:
   // How to layout usage descriptions with the option flags.
-  enum Layout { ALIGN, INTERLEAVE, STAGGER };
+  enum Layout { Layout_ALIGN, INTERLEAVE, STAGGER };
 
   inline ezOptionParser();
   inline ~ezOptionParser();
@@ -1328,7 +1328,7 @@ public:
   inline void add(const char * defaults, bool required, int expectArgs, char delim, const char * help, const char * flag1, const char * flag2, const char * flag3, const char * flag4, ezOptionValidator* validator=0);
   inline bool exportFile(const char * filename, bool all=false);
   inline OptionGroup * get(const char * name);
-  inline void getUsage(std::string & usage, int width=80, Layout layout=ALIGN);
+  inline void getUsage(std::string & usage, int width=80, Layout layout=Layout_ALIGN);
   inline void getUsageDescriptions(std::string & usage, int width=80, Layout layout=STAGGER);
   inline bool gotExpected(std::vector<std::string> & badOptions);
   inline bool gotRequired(std::vector<std::string> & badOptions);
@@ -1853,7 +1853,7 @@ void ezOptionParser::getUsageDescriptions(std::string & usage, int width, Layout
   
   // Find longest opt flag string to set column start for help usage descriptions.
   int maxlen=0;
-  if (layout == ALIGN) {
+  if (layout == Layout_ALIGN) {
     for(i=0; i < (long int)groups.size(); ++i) {
       if (maxlen < (long int)sortedOpts[i].size())
         maxlen = sortedOpts[i].size();

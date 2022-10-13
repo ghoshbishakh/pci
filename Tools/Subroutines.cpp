@@ -184,7 +184,7 @@ void Commit_To_Seeds(vector<PRNG>& G,
       Comm_seeds[i].resize(P.num_players());
       Open_seeds[i].resize(P.num_players());
       seeds[i][P.my_num()].reset_write_head();
-      seeds[i][P.my_num()].append(G[i].get_seed(),SEED_SIZE);
+      seeds[i][P.my_num()].append(G[i].get_seed(),MPSPDZ_SEED_SIZE);
     }
   Commit(Comm_seeds,Open_seeds,seeds,P,num_runs);
 }

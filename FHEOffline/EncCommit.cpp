@@ -287,8 +287,8 @@ void EncCommit<T,FD,S>::Create_More() const
         }
 
       // Generate a random seed and use it to determine which Delta's to open
-      octet seed[SEED_SIZE];
-      Create_Random_Seed(seed,*P,SEED_SIZE);
+      octet seed[MPSPDZ_SEED_SIZE];
+      Create_Random_Seed(seed,*P,MPSPDZ_SEED_SIZE);
       PRNG RG; RG.SetSeed(seed);
     
       Rq_Element mm(params.FFTD(),polynomial,polynomial);

@@ -13,16 +13,16 @@
 
 #ifndef USE_AES
   #define PIPELINES   1
-  #define SEED_SIZE   randombytes_SEEDBYTES
-  #define RAND_SIZE   480
+  #define MPSPDZ_SEED_SIZE   randombytes_SEEDBYTES
+  #define MPSPDZ_RAND_SIZE   480
 #else
 #if defined(__AES__) || !defined(__x86_64__)
   #define PIPELINES   8
 #else
   #define PIPELINES   1
 #endif
-  #define SEED_SIZE   AES_BLK_SIZE
-  #define RAND_SIZE   (PIPELINES * AES_BLK_SIZE)
+  #define MPSPDZ_SEED_SIZE   AES_BLK_SIZE
+  #define MPSPDZ_RAND_SIZE   (PIPELINES * AES_BLK_SIZE)
 #endif
 
 class Player;
@@ -39,9 +39,9 @@ class PlayerBase;
      
 class PRNG
 {
-   octet seed[SEED_SIZE]; 
-   octet state[RAND_SIZE] __attribute__((aligned (16)));
-   octet random[RAND_SIZE] __attribute__((aligned (16)));
+   octet seed[MPSPDZ_SEED_SIZE]; 
+   octet state[MPSPDZ_RAND_SIZE] __attribute__((aligned (16)));
+   octet random[MPSPDZ_RAND_SIZE] __attribute__((aligned (16)));
 
    #ifdef USE_AES
 #if defined(__AES__) || !defined(__x86_64__)
@@ -161,7 +161,7 @@ inline bool PRNG::get_bit()
 
 inline unsigned char PRNG::get_uchar()
 {
-  if (cnt>=RAND_SIZE) { next(); }
+  if (cnt>=MPSPDZ_RAND_SIZE) { next(); }
   unsigned char ans=random[cnt];
   cnt++;
   // print_state(); cout << " UCHA " << (int) ans << endl;
@@ -171,7 +171,7 @@ inline unsigned char PRNG::get_uchar()
 
 inline __m128i PRNG::get_doubleword()
 {
-    if (cnt > RAND_SIZE - 16)
+    if (cnt > MPSPDZ_RAND_SIZE - 16)
         next();
     __m128i ans = _mm_loadu_si128((__m128i*)&random[cnt]);
     cnt += 16;
@@ -184,12 +184,12 @@ inline void PRNG::get_octets(octet* ans,int len)
   int pos=0;
   while (len)
     {
-      int step=min(len,RAND_SIZE-cnt);
+      int step=min(len,MPSPDZ_RAND_SIZE-cnt);
       memcpy(ans+pos,random+cnt,step);
       pos+=step;
       len-=step;
       cnt+=step;
-      if (cnt==RAND_SIZE)
+      if (cnt==MPSPDZ_RAND_SIZE)
         next();
     }
 }
@@ -197,7 +197,7 @@ inline void PRNG::get_octets(octet* ans,int len)
 template<int L>
 inline void PRNG::get_octets(octet* ans)
 {
-   if (L < RAND_SIZE - cnt)
+   if (L < MPSPDZ_RAND_SIZE - cnt)
    {
      avx_memcpy<L>(ans, random + cnt);
      cnt += L;

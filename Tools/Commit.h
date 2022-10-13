@@ -8,7 +8,7 @@
 
 /*
  * Commit using comm = hash(send_player || message || r)
- * where r is SEED_SIZE random bytes
+ * where r is MPSPDZ_SEED_SIZE random bytes
  */
 void Commit(octetStream& comm, octetStream& open, const octetStream& message, int send_player);
 

@@ -24,19 +24,19 @@ PRNG::PRNG() :
 
 PRNG::PRNG(octetStream& seed) : PRNG()
 {
-  SetSeed(seed.consume(SEED_SIZE));
+  SetSeed(seed.consume(MPSPDZ_SEED_SIZE));
 }
 
 void PRNG::ReSeed()
 {
-  randombytes_buf(seed, SEED_SIZE);
+  randombytes_buf(seed, MPSPDZ_SEED_SIZE);
   InitSeed();
 }
 
 void PRNG::SeedGlobally(const PlayerBase& P)
 {
-  octet seed[SEED_SIZE];
-  Create_Random_Seed(seed, P, SEED_SIZE);
+  octet seed[MPSPDZ_SEED_SIZE];
+  Create_Random_Seed(seed, P, MPSPDZ_SEED_SIZE);
   SetSeed(seed);
 }
 
@@ -49,14 +49,14 @@ void PRNG::SeedGlobally(const Player& P, bool secure)
       octetStream os;
       if (P.my_num() == 0)
         {
-          randombytes_buf(seed, SEED_SIZE);
-          os.append(seed, SEED_SIZE);
+          randombytes_buf(seed, MPSPDZ_SEED_SIZE);
+          os.append(seed, MPSPDZ_SEED_SIZE);
           P.send_all(os);
         }
       else
         {
           P.receive_player(0, os);
-          os.consume(seed, SEED_SIZE);
+          os.consume(seed, MPSPDZ_SEED_SIZE);
         }
       InitSeed();
     }
@@ -64,20 +64,20 @@ void PRNG::SeedGlobally(const Player& P, bool secure)
 
 void PRNG::SetSeed(const octet* inp)
 {
-  memcpy(seed,inp,SEED_SIZE*sizeof(octet));
+  memcpy(seed,inp,MPSPDZ_SEED_SIZE*sizeof(octet));
   InitSeed();
 }
 
 void PRNG::SetSeed(PRNG& G)
 {
-  octet tmp[SEED_SIZE];
+  octet tmp[MPSPDZ_SEED_SIZE];
   G.get_octets(tmp, sizeof(tmp));
   SetSeed(tmp);
 }
 
 void PRNG::SecureSeed(Player& player)
 {
-  Create_Random_Seed(seed, player, SEED_SIZE);
+  Create_Random_Seed(seed, player, MPSPDZ_SEED_SIZE);
   InitSeed();
 }
 
@@ -89,11 +89,11 @@ void PRNG::InitSeed()
         { aes_schedule(KeyScheduleC,seed); }
      else
         { aes_schedule(KeySchedule,seed); }
-     memset(state,0,RAND_SIZE*sizeof(octet));
+     memset(state,0,MPSPDZ_RAND_SIZE*sizeof(octet));
      for (int i = 0; i < PIPELINES; i++)
          state[i*AES_BLK_SIZE] = i;
   #else
-     memcpy(state,seed,SEED_SIZE*sizeof(octet));
+     memcpy(state,seed,MPSPDZ_SEED_SIZE*sizeof(octet));
   #endif
   hash();
   //cout << "SetSeed : "; print_state(); cout << endl;
@@ -103,17 +103,17 @@ void PRNG::InitSeed()
 void PRNG::print_state() const
 {
   unsigned i;
-  for (i=0; i<SEED_SIZE; i++)
+  for (i=0; i<MPSPDZ_SEED_SIZE; i++)
     { if (seed[i]<10){ cout << "0"; }
       cout << hex << (int) seed[i]; 
     }
   cout << "\t";
-  for (i=0; i<RAND_SIZE; i++)
+  for (i=0; i<MPSPDZ_RAND_SIZE; i++)
     { if (random[i]<10) { cout << "0"; }
       cout << hex << (int) random[i]; 
     }
   cout << "\t";
-  for (i=0; i<RAND_SIZE; i++)
+  for (i=0; i<MPSPDZ_RAND_SIZE; i++)
     { if (state[i]<10) { cout << "0"; }
       cout << hex << (int) state[i];
     }
@@ -125,10 +125,10 @@ void PRNG::hash()
 {
   assert(initialized);
   #ifndef USE_AES
-    unsigned char tmp[RAND_SIZE + SEED_SIZE];
+    unsigned char tmp[MPSPDZ_RAND_SIZE + MPSPDZ_SEED_SIZE];
     randombytes_buf_deterministic(tmp, sizeof tmp, seed);
-    memcpy(random, tmp, RAND_SIZE);
-    memcpy(seed, tmp + RAND_SIZE, SEED_SIZE);
+    memcpy(random, tmp, MPSPDZ_RAND_SIZE);
+    memcpy(seed, tmp + MPSPDZ_RAND_SIZE, MPSPDZ_SEED_SIZE);
   #else
     if (useC)
        { software_ecb_aes_128_encrypt<PIPELINES>((__m128i*)random,(__m128i*)state,KeyScheduleC); }
@@ -158,7 +158,7 @@ void PRNG::next()
 unsigned int PRNG::get_uint()
 {
   // We need four bytes of randomness
-  if (cnt>RAND_SIZE-4) { next(); }
+  if (cnt>MPSPDZ_RAND_SIZE-4) { next(); }
   unsigned int a0=random[cnt],a1=random[cnt+1],a2=random[cnt+2],a3=random[cnt+3];
   cnt=cnt+4;
   unsigned int ans=(a0+(a1<<8)+(a2<<16)+(a3<<24));

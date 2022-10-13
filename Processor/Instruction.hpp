@@ -126,7 +126,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case GCONVGF2N:
       case LTZC:
       case EQZC:
-      case RAND:
+      case _RAND:
       case DABIT:
       case SHUFFLE:
       case ACCEPTCLIENTCONNECTION:
@@ -550,7 +550,7 @@ int BaseInstruction::get_reg_type() const
     case SHUFFLE:
     case CONVMODP:
     case GCONVGF2N:
-    case RAND:
+    case _RAND:
     case NPLAYERS:
     case THRESHOLD:
     case PLAYERID:

@@ -40,7 +40,7 @@ ProgramParty* ProgramParty::singleton = 0;
 BaseParty::BaseParty()
 {
 #ifdef DEBUG_PRNG_PARTY
-	octet seed[SEED_SIZE];
+	octet seed[MPSPDZ_SEED_SIZE];
 	memset(seed, 0, sizeof(seed));
 	seed[0] = id;
 	prng.SetSeed(seed);

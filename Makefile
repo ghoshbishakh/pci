@@ -118,7 +118,9 @@ shamir: shamir-party.x malicious-shamir-party.x atlas-party.x galois-degree.x
 sy: sy-rep-field-party.x sy-rep-ring-party.x sy-shamir-party.x
 
 ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp)) Fake-ECDSA.x
+bls: $(patsubst bls/%.cpp,%.x,$(wildcard bls/*-bls-party.cpp)) Fake-bls.x
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
+bls-static: static-dir $(patsubst bls/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 
 $(LIBRELEASE): Protocols/MalRepRingOptions.o $(PROCESSOR) $(COMMONOBJS) $(TINIER) $(GC)
 	$(AR) -csr $@ $^
@@ -138,6 +140,10 @@ static/%.x: Machines/%.o $(LIBRELEASE) $(LIBSIMPLEOT)
 static/%.x: ECDSA/%.o ECDSA/P256Element.o $(VMOBJS) $(OT) $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
 
+static/%.x: bls/%.o bls/P256Element.o $(VMOBJS) $(OT) $(LIBSIMPLEOT)
+	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
+
+
 static-dir:
 	@ mkdir static 2> /dev/null; true
 
@@ -145,6 +151,10 @@ static-release: static-dir $(patsubst Machines/%.cpp, static/%.x, $(wildcard Mac
 
 Fake-ECDSA.x: ECDSA/Fake-ECDSA.cpp ECDSA/P256Element.o $(COMMON) Processor/PrepBase.o
 	$(CXX) -o $@ $^ $(CFLAGS) $(LDLIBS)
+
+Fake-bls.x: bls/Fake-bls.cpp bls/P256Element.o $(COMMON) Processor/PrepBase.o
+	$(CXX) -o $@ $^ $(CFLAGS) $(LDLIBS)
+
 
 ot.x: $(OT) $(COMMON) Machines/OText_main.o Machines/OTMachine.o $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
@@ -196,6 +206,8 @@ Fake-Offline.x: Utils/Fake-Offline.o $(VM)
 
 %-ecdsa-party.x: ECDSA/%-ecdsa-party.o ECDSA/P256Element.o $(VM)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+%-bls-party.x: bls/%-bls-party.o bls/P256Element.o bls/blsElement.o $(VM)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) $(LIBRELIC)
 
 replicated-bin-party.x: GC/square64.o
 replicated-ring-party.x: GC/square64.o
@@ -235,8 +247,11 @@ sy-rep-ring-party.x: Protocols/MalRepRingOptions.o
 rep4-ring-party.x: GC/Rep4Secret.o
 no-party.x: Protocols/ShareInterface.o
 semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o
+semi-bls-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
+mascot-bls-party.x: $(OT) $(LIBSIMPLEOT)
 fake-spdz-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
+fake-spdz-bls-party.x: $(OT) $(LIBSIMPLEOT)
 emulate.x: GC/FakeSecret.o
 semi-bmr-party.x: GC/SemiPrep.o $(OT)
 real-bmr-party.x: $(OT)
